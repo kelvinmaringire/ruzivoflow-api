@@ -1,0 +1,88 @@
+# Start a wagtail project 
+docker compose run web wagtail start ruzivoflow .
+
+# Apply all Django/Wagtail migrations
+docker compose run web python manage.py migrate
+
+
+# Create admin user to log into Wagtail admin
+docker compose run web python manage.py createsuperuser
+
+
+# Collect static files for production
+docker compose run web python manage.py collectstatic --noinput
+
+# ------------------------------
+# BACKUP POSTGRESQL DATABASE
+# ------------------------------
+
+# 1️⃣ Backup PostgreSQL database to a file inside the container
+docker compose exec db pg_dump -U postgres -d ruzivoflow_db -F c -f /var/lib/postgresql/data/data_backup.dump
+
+# 2️⃣ Copy backup from container to local machine
+docker cp postgres_db:/var/lib/postgresql/data/data_backup.dump ./data_backup.dump
+
+# ------------------------------
+# RESTORE POSTGRESQL DATABASE
+# ------------------------------
+
+# 3️⃣ Copy local backup file back into the container (if needed)
+docker cp ./data_backup.dump postgres_db:/var/lib/postgresql/data/data_backup.dump
+
+# 4️⃣ Restore database from backup inside container
+# Option 1: Using explicit values
+docker compose exec db pg_restore -U postgres -d ruzivoflow_db /var/lib/postgresql/data/data_backup.dump
+
+# Option 2: Using PowerShell environment variables (if you set them)
+# docker compose exec db pg_restore -U $env:POSTGRES_USER -d $env:POSTGRES_DB /var/lib/postgresql/data/data_backup.dump
+
+
+# ------------------------------
+# VPS Commands
+# ------------------------------
+
+sudo apt update && sudo apt upgrade -y
+
+
+sudo apt update
+
+sudo apt upgrade -y
+
+sudo apt install certbot python3-certbot-nginx -y
+
+sudo certbot --nginx -d databet.co.za
+
+
+docker run --rm `
+  -v ${PWD}/certbot/conf:/etc/letsencrypt `
+  -v ${PWD}/certbot/www:/var/www/certbot `
+  certbot/certbot certonly `
+  --webroot `
+  --webroot-path=/var/www/certbot `
+  -d databet.co.za `
+  -d www.databet.co.za `
+  --non-interactive `
+  --agree-tos `
+  --email ringazm@gmaail.com
+
+
+
+# ------------------------------
+# Installing Docker
+# ------------------------------
+
+
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+docker --version
+
+docker pull 7612/ruzivoflow-backend:0.1.0
+

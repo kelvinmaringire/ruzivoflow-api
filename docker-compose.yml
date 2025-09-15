@@ -1,0 +1,69 @@
+services:
+  web:
+    build: .  # Build Dockerfile from current directory
+    image: ruzivoflow-backend:0.1.0
+    container_name: wagtail_app
+    ports:
+      - "8000:8000"   # 👈 Map container port 8000 to host port 8000
+
+    # Mount volumes
+    volumes:
+      - .:/app                    # Mount project code for live development (hot reload)
+      - static_volume:/app/static  # Persistent storage for static files
+      - media_volume:/app/media    # Persistent storage for uploaded media
+    env_file:
+      - .env                       # Load environment variables from .env file
+    depends_on:
+      db:
+        condition: service_healthy # Wait for DB to be healthy before starting web
+    restart: unless-stopped         # Always restart unless container is stopped manually
+
+  db:
+    image: postgres:17              # Use PostgreSQL 17 (long-term support)
+    container_name: postgres_db
+    # Persistent volume to keep DB data even if container is removed
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Loaded from .env
+      POSTGRES_USER: ${POSTGRES_USER}          # Loaded from .env
+      POSTGRES_DB: ${POSTGRES_DB}              # Loaded from .env
+    # Healthcheck to ensure DB is ready before web starts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s        # Check every 10 seconds
+      retries: 5           # Maximum 5 retries before marking as unhealthy
+      start_period: 30s    # Wait 30 seconds before starting health checks
+      timeout: 10s         # Max 10 seconds per health check
+    restart: unless-stopped  # Restart DB if it crashes
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/app/static
+      - media_volume:/app/media
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    depends_on:
+      - web
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew --webroot -w /var/www/certbot --deploy-hook \"docker exec nginx_proxy nginx -s reload\"; done'"
+    restart: unless-stopped    
+
+# Define named volumes
+volumes:
+  postgres_db:    # Stores PostgreSQL data persistently
+  static_volume:  # Stores static files persistently
+  media_volume:   # Stores uploaded media persistently
