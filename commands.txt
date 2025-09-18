@@ -79,10 +79,50 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
   sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 docker --version
+docker run hello-world
 
 docker pull 7612/ruzivoflow-backend:0.1.0
 
+docker images | grep ruzivoflow-backend
+
+mkdir -p ~/ruzivoflow
+cd ~/ruzivoflow
+
+nano docker-compose.yml
+
+################################################################
+
+services:
+  backend:
+    image: 7612/ruzivoflow-backend:0.1.0
+    container_name: ruzivoflow-backend
+    ports:
+      - "8000:8000"
+    restart: always
+    env_file:
+      - .env
+
+###############################################################
+
+
+nano .env
+
+
+###############################################################
+
+DJANGO_SECRET_KEY=your_secret_key
+DEBUG=False
+ALLOWED_HOSTS=*
+DATABASE_URL=postgres://user:password@db:5432/dbname
+
+##############################################################

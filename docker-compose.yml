@@ -1,7 +1,7 @@
 services:
   web:
     build: .  # Build Dockerfile from current directory
-    image: ruzivoflow-backend:0.1.0
+    image: 7612/ruzivoflow-backend:0.1.0
     container_name: wagtail_app
     ports:
       - "8000:8000"   # 👈 Map container port 8000 to host port 8000
@@ -47,20 +47,9 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/app/static
       - media_volume:/app/media
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
     depends_on:
       - web
-    restart: unless-stopped
-
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew --webroot -w /var/www/certbot --deploy-hook \"docker exec nginx_proxy nginx -s reload\"; done'"
-    restart: unless-stopped    
+    restart: unless-stopped  
 
 # Define named volumes
 volumes:
