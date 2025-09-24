@@ -48,22 +48,83 @@ sudo apt update
 
 sudo apt upgrade -y
 
-sudo apt install certbot python3-certbot-nginx -y
+# Allow HTTP (port 80)
+sudo ufw allow 80/tcp
 
-sudo certbot --nginx -d databet.co.za
+# Allow HTTPS (port 443)
+sudo ufw allow 443/tcp
+
+# (optional) allow SSH if not already
+sudo ufw allow 22/tcp
+
+sudo ufw reload
+
+sudo ufw status
 
 
-docker run --rm `
-  -v ${PWD}/certbot/conf:/etc/letsencrypt `
-  -v ${PWD}/certbot/www:/var/www/certbot `
-  certbot/certbot certonly `
-  --webroot `
-  --webroot-path=/var/www/certbot `
-  -d databet.co.za `
-  -d www.databet.co.za `
-  --non-interactive `
-  --agree-tos `
-  --email ringazm@gmaail.com
+
+# ------------------------------
+# Certbot Docker Installing
+# ------------------------------
+
+docker volume create certbot-etc
+docker volume create certbot-var
+
+Update docker-compose.yml
+
+services:
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - ./nginx/conf.d:/etc/nginx/conf.d  # So Certbot can access nginx config if needed
+    entrypoint: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; certbot renew; done'"
+    restart: unless-stopped
+
+nginx
+
+server {
+    listen 80;
+    server_name databet.co.za;
+
+    location /.well-known/acme-challenge/ {
+        root /app/static/;   # Certbot will place challenge here
+    }
+
+    location /static/ {
+        alias /app/static/;
+    }
+
+    location /media/ {
+        alias /app/media/;
+    }
+
+    location / {
+        proxy_pass http://web:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+3.2 Run Certbot using webroot
+
+docker run -it --rm \
+  -v certbot-etc:/etc/letsencrypt \
+  -v certbot-var:/var/lib/letsencrypt \
+  -v $(pwd)/static:/app/static \
+  certbot/certbot certonly \
+  --webroot \
+  --webroot-path=/app/static \
+  --email ringazm@gmail.com \
+  --agree-tos \
+  --no-eff-email \
+  -d databet.co.za
+
+
 
 
 
@@ -91,38 +152,20 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 docker --version
 docker run hello-world
 
-docker pull 7612/ruzivoflow-backend:0.1.0
+mkdir -p ~/webapps
 
-docker images | grep ruzivoflow-backend
+cd ~/webapps
 
-mkdir -p ~/ruzivoflow
-cd ~/ruzivoflow
+sudo git clone https://github.com/kelvinmaringire/ruzivoflow-api.git
 
-nano docker-compose.yml
-
-################################################################
-
-services:
-  backend:
-    image: 7612/ruzivoflow-backend:0.1.0
-    container_name: ruzivoflow-backend
-    ports:
-      - "8000:8000"
-    restart: always
-    env_file:
-      - .env
-
-###############################################################
-
+cd ruzivoflow-api
 
 nano .env
 
+Copy .env files
 
-###############################################################
+chmod +x entrypoint.sh
 
-DJANGO_SECRET_KEY=your_secret_key
-DEBUG=False
-ALLOWED_HOSTS=*
-DATABASE_URL=postgres://user:password@db:5432/dbname
+docker compose up -d
 
-##############################################################
+
