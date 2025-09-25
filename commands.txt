@@ -90,19 +90,20 @@ server {
     server_name databet.co.za;
 
     location /.well-known/acme-challenge/ {
-        root /app/static/;   # Certbot will place challenge here
+        alias /app/static/.well-known/acme-challenge/;
     }
 
+
     location /static/ {
-        alias /app/static/;
+        alias /app/static/;  # Point to your STATIC_ROOT
     }
 
     location /media/ {
-        alias /app/media/;
+        alias /app/media/;   # Point to your MEDIA_ROOT
     }
 
     location / {
-        proxy_pass http://web:8000;
+        proxy_pass http://web:8000; # Gunicorn container
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -110,21 +111,14 @@ server {
     }
 }
 
+
 3.2 Run Certbot using webroot
 
-docker run -it --rm \
-  -v certbot-etc:/etc/letsencrypt \
-  -v certbot-var:/var/lib/letsencrypt \
-  -v $(pwd)/static:/app/static \
-  certbot/certbot certonly \
-  --webroot \
-  --webroot-path=/app/static \
-  --email ringazm@gmail.com \
-  --agree-tos \
-  --no-eff-email \
-  -d databet.co.za
+docker compose run --rm certbot certonly --webroot --webroot-path /app/static -d databet.co.za
 
+for testing 
 
+docker compose run --rm certbot certonly --webroot --webroot-path /app/static -d databet.co.za --dry-run
 
 
 
