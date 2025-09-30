@@ -8,11 +8,26 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 from search import views as search_views
 
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+from .api import api_router
+
 urlpatterns = [
+    path('api/v2/', api_router.urls),
     path("django-admin/", admin.site.urls),
-    path("", include(wagtailadmin_urls)),
+    path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
     path("search/", search_views.search, name="search"),
+    
+    path('accounts/', include('accounts.urls')),
+    path('content_api/', include('content_api.urls')),
+    path('node_editor/', include('node_editor.urls')),
+    
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
 

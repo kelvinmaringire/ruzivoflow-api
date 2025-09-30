@@ -1,8 +1,8 @@
 services:
   web:
     build: .  # Build Dockerfile from current directory
+    container_name: web
     image: 7612/ruzivoflow-backend:0.1.0
-    container_name: wagtail_app
     ports:
       - "8000:8000"   # 👈 Map container port 8000 to host port 8000
 
@@ -20,7 +20,7 @@ services:
 
   db:
     image: postgres:17              # Use PostgreSQL 17 (long-term support)
-    container_name: postgres_db
+    container_name: db
     # Persistent volume to keep DB data even if container is removed
     volumes:
       - postgres_db:/var/lib/postgresql/data
@@ -39,7 +39,7 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: nginx_proxy
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"

@@ -1,15 +1,17 @@
-# Use Python 3.13 slim image based on Debian Bookworm
+# Use Python 3.12 slim image
 FROM python:3.12-slim-bookworm
 
-# Prevent Python from buffering stdout/stderr and creating .pyc files
+# Environment variables
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
-# Set working directory inside the container
+# Set workdir
 WORKDIR /app
 
-# Install system dependencies required for Wagtail, Django, and image handling
-RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
+# Install system dependencies in one layer
+RUN apt-get update --yes --quiet && \
+    apt-get install --yes --quiet --no-install-recommends \
     build-essential \
     libpq-dev \
     libjpeg62-turbo-dev \
@@ -18,22 +20,26 @@ RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-r
     libffi-dev \
     libssl-dev \
     gettext \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy only requirements first to leverage Docker cache
-COPY requirements.txt ./
+# Install pip-tools for dependency management (optional but recommended)
+RUN pip install --upgrade pip setuptools wheel
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy only requirements first (for better caching)
+COPY requirements.txt .
 
-# Copy the rest of the application code
+# Use Docker’s build cache for pip downloads
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# Copy the app source
 COPY . .
 
-# Make sure the entrypoint script is executable
+# Entrypoint script permissions
 RUN chmod +x entrypoint.sh
 
-# Expose the default port for Django dev server
+# Expose Django port
 EXPOSE 8000
 
-# Default command to run when container starts
+# Start container
 CMD ["./entrypoint.sh"]
