@@ -1,175 +1,118 @@
-# 🚀 Wagtail + Docker + VPS Setup Commands
+######################################
+Start new project
+######################################
 
-This guide organizes your commands into a clear, step-by-step process with headings, emojis, and comments.
-
----
-
-## 🐳 1. Install Docker on VPS
-
-```bash
-# Update and install required packages
-sudo apt update && sudo apt install -y ca-certificates curl gnupg lsb-release
-
-# Add Docker’s official GPG key
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Add Docker repo
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine, CLI, and Compose plugin
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Verify installation
-docker --version
-docker run hello-world
-```
-
----
-
-## 🔐 2. VPS Firewall Setup
-
-```bash
-# Update & upgrade system
-sudo apt update && sudo apt upgrade -y
-
-# Allow HTTP (port 80)
-sudo ufw allow 80/tcp
-
-# Allow HTTPS (port 443)
-sudo ufw allow 443/tcp
-
-# Allow SSH (port 22) - ⚠️ ensure this is enabled or you’ll lose access
-sudo ufw allow 22/tcp
-
-# Reload firewall
-sudo ufw reload
-
-# Check firewall status
-sudo ufw status
-```
-
----
-
-## 📦 3. Clone and Setup Wagtail Project
-
-```bash
-# Create apps folder
-mkdir -p ~/webapps
-cd ~/webapps
-
-# Clone your project
-sudo git clone https://github.com/kelvinmaringire/ruzivoflow-api.git
-cd ruzivoflow-api
-
-# Add environment variables
-nano .env   # (paste your environment variables here)
-
-# Make entrypoint executable
-chmod +x entrypoint.sh
-
-# Start services
-docker compose up -d
-```
-
----
-
-## 🦄 4. Wagtail Project Commands
-
-```bash
-# Start a new Wagtail project
 docker compose run web wagtail start ruzivoflow .
 
-# Apply all Django/Wagtail migrations
 docker compose run web python manage.py migrate
 
-# Create admin user
 docker compose run web python manage.py createsuperuser
-
-# Collect static files for production
-docker compose run web python manage.py collectstatic --noinput
-```
 
 docker compose exec web pip freeze > requirements.txt 
 
----
+######################################
+VPS start commands
+######################################
 
-## 🗄️ 5. PostgreSQL Backup & Restore
+sudo apt update
 
-### 🔹 Backup Database
+sudo apt upgrade -y
 
-```bash
+sudo apt install ufw -y
+
+sudo ufw enable
+
+sudo ufw allow 80/tcp && sudo ufw allow 8000/tcp && sudo ufw allow 443/tcp && sudo ufw allow 22/tcp && sudo ufw allow 6379/tcp
+
+sudo ufw reload
+
+sudo ufw status
+
+######################################
+Install Docker on VPS
+######################################
+
+sudo apt update && sudo apt install -y ca-certificates curl gnupg lsb-release
+
+sudo install -m 0755 -d /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+docker --version
+
+sudo usermod -aG docker $USER
+
+docker run hello-world
+
+######################################
+Clone and Setup Wagtail Project
+######################################
+
+mkdir -p ~/webapps
+
+cd ~/webapps
+
+sudo git clone https://github.com/kelvinmaringire/ruzivoflow-api.git
+
+cd ruzivoflow-api
+
+nano .env   # (paste your environment variables here)
+
+chmod +x entrypoint.sh
+
+docker compose up -d
+
+######################################
+PostgreSQL Backup & Restore
+######################################
+
 # Backup inside container
 docker compose exec db pg_dump -U postgres -d ruzivoflow_db -F c -f /var/lib/postgresql/data/data_backup.dump
 
 # Copy backup to local machine
-docker cp db:/var/lib/postgresql/data/data_backup.dump ./data_backup.dump
-```
+docker cp ruzivoflow_db:/var/lib/postgresql/data/data_backup.dump ./data_backup.dump
 
 ### 🔹 Restore Database
 
-```bash
-# Copy backup back into container
-docker cp ./data_backup.dump db:/var/lib/postgresql/data/data_backup.dump
+docker cp ./data_backup.dump ruzivoflow_db:/tmp/data_backup.dump
 
-# Restore using pg_restore
-docker compose exec db pg_restore -U postgres -d ruzivoflow_db /var/lib/postgresql/data/data_backup.dump
-```
+docker compose exec db bash
 
----
+psql -U postgres -c "DROP DATABASE ruzivoflow_db;"
 
-## 🔒 6. SSL with Certbot (Docker)
+psql -U postgres -c "CREATE DATABASE ruzivoflow_db;"
 
-### Create Volumes
+pg_restore -U postgres -d ruzivoflow_db /tmp/data_backup.dump
 
-```bash
-docker volume create certbot-etc
-docker volume create certbot-var
-```
+exit
 
-### Update `docker-compose.yml`
+######################################
+SSL with Certbot (Docker)
+######################################
 
-```yaml
-services:
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - ./nginx/conf.d:/etc/nginx/conf.d
-    entrypoint: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; certbot renew; done'"
-    restart: unless-stopped
-```
+docker exec ruzivoflow_nginx mkdir -p /app/static/.well-known/acme-challenge
 
-### Run Certbot (Webroot)
+docker exec ruzivoflow_certbot certbot certonly \
+    --webroot \
+    --webroot-path /app/static \
+    -d databet.co.za -d www.databet.co.za \
+    --email ringazm@gmail.com \
+    --agree-tos \
+    --non-interactive \
+    --no-eff-email
 
-```bash
-docker compose run --rm --entrypoint certbot certbot certonly \
-  --webroot --webroot-path /app/static -d databet.co.za
+######################################
+Nginx ruzivoflow.conf
+######################################
 
-# Test dry-run
-docker compose run --rm --entrypoint certbot certbot certonly \
-  --webroot --webroot-path /app/static -d databet.co.za --dry-run
-
-# Reload nginx after SSL issued
-docker compose exec nginx nginx -s reload
-```
-
----
-
-## 🌐 7. Nginx Config (HTTP → HTTPS)
-
-### `nginx/conf.d/databet.conf`
-
-```nginx
 # Redirect www.databet.co.za to databet.co.za
 server {
     listen 80;
@@ -229,4 +172,6 @@ server {
     }
 }
 
-```
+docker exec ruzivoflow_nginx nginx -t
+
+docker exec ruzivoflow_nginx nginx -s reload
