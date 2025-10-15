@@ -1,4 +1,103 @@
 ######################################
+Nginx gateway
+######################################
+
+cd /root
+
+mkdir -p nginx-gateway
+
+cd nginx-gateway
+
+mkdir -p nginx
+
+cd nginx
+
+mkdir -p conf.d
+
+cd conf.d
+
+touch ruzivoflow.conf
+
+``````````````````````````````````````````````````````````````````````````````
+
+server {
+    listen 80;
+    server_name databet.co.za;
+
+    location /.well-known/acme-challenge/ {
+        alias /app/static/ruzivoflow/.well-known/acme-challenge/;
+    }
+
+    location /static/ {
+        alias /app/static/ruzivoflow/;
+    }
+
+    location /media/ {
+        alias /app/media/ruzivoflow/;
+    }
+
+    location / {
+        proxy_pass http://ruzivoflow_web:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+`````````````````````````````````````````````````````````````````````````````````````
+
+
+cd /root/nginx-gateway
+
+touch docker-compose.yml
+
+```````````````````````````````````````````````````````````````````````````````````````
+
+services:
+  nginx-gateway:
+    image: nginx:latest
+    container_name: nginx_gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./ssl:/etc/nginx/ssl
+      - ruzivoflow_static:/app/static/ruzivoflow
+      - ruzivoflow_media:/app/media/ruzivoflow
+      - certbot_etc:/etc/letsencrypt
+    restart: unless-stopped
+    networks:
+      - gateway_net
+
+  certbot:
+    image: certbot/certbot
+    container_name: gateway_certbot
+    volumes:
+      - certbot_etc:/etc/letsencrypt
+      - ruzivoflow_static:/app/static/ruzivoflow
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+    networks:
+      - gateway_net
+
+volumes:
+  ruzivoflow_static:
+  ruzivoflow_media:
+  certbot_etc:
+
+networks:
+  gateway_net:
+    driver: bridge
+
+``````````````````````````````````````````````````````````````````````````````````````
+
+docker network create gateway_net
+
+docker-compose up -d
+
+######################################
 Start new project
 ######################################
 
@@ -126,15 +225,15 @@ server {
     server_name databet.co.za;
 
     location /.well-known/acme-challenge/ {
-        alias /app/static/.well-known/acme-challenge/;
+        alias /app/static/ruzivoflow/.well-known/acme-challenge/;
     }
 
     location /static/ {
-        alias /app/static/;  # Point to your STATIC_ROOT
+        alias /app/static/ruzivoflow/;  # Point to your STATIC_ROOT
     }
 
     location /media/ {
-        alias /app/media/;   # Point to your MEDIA_ROOT
+        alias /app/media/ruzivoflow/;   # Point to your MEDIA_ROOT
     }
     
     # Force HTTPS for everything else
@@ -156,15 +255,15 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
 
     location /static/ {
-        alias /app/static/;
+        alias /app/static/ruzivoflow/;
     }
 
     location /media/ {
-        alias /app/media/;
+        alias /app/media/ruzivoflow/;
     }
 
     location / {
-        proxy_pass http://web:8000; # Gunicorn container
+        proxy_pass http://ruzivoflow_web:8000; # Gunicorn container
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
