@@ -18,7 +18,6 @@ services:
         condition: service_healthy # Wait for DB to be healthy before starting web
     restart: unless-stopped         # Always restart unless container is stopped manually
     networks:
-      - ruzivoflow_net
       - gateway_net
 
   db:
@@ -40,17 +39,17 @@ services:
       timeout: 10s         # Max 10 seconds per health check
     restart: unless-stopped  # Restart DB if it crashes
     networks:
-      - ruzivoflow_net
+      - gateway_net
 
 # Define named volumes
 volumes:
   ruzivoflow_db:    # Stores PostgreSQL data persistently
   ruzivoflow_static:  # Stores static files persistently
+    external: true 
   ruzivoflow_media:   # Stores uploaded media persistently
+    external: true 
 
 networks:
-  ruzivoflow_net: 
-    driver: bridge
   gateway_net:
-    external: true      
+    external: true    
 

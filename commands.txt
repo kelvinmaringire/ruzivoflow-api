@@ -24,16 +24,18 @@ server {
     listen 80;
     server_name databet.co.za;
 
+    # Let's Encrypt challenge
     location /.well-known/acme-challenge/ {
-        alias /app/static/ruzivoflow/.well-known/acme-challenge/;
+        root /var/www/certbot;
     }
 
+    # Redirect to backend
     location /static/ {
-        alias /app/static/ruzivoflow/;
+        alias /app/static/;
     }
 
     location /media/ {
-        alias /app/media/ruzivoflow/;
+        alias /app/media/;
     }
 
     location / {
@@ -43,7 +45,10 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
 }
+
+
 
 `````````````````````````````````````````````````````````````````````````````````````
 
@@ -62,11 +67,13 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./ssl:/etc/nginx/ssl
-      - ruzivoflow_static:/app/static/ruzivoflow
-      - ruzivoflow_media:/app/media/ruzivoflow
+      - ./html:/var/www/certbot
       - certbot_etc:/etc/letsencrypt
+      - ruzivoflow_static:/app/static
+      - ruzivoflow_media:/app/media
     restart: unless-stopped
     networks:
       - gateway_net
@@ -76,22 +83,35 @@ services:
     container_name: gateway_certbot
     volumes:
       - certbot_etc:/etc/letsencrypt
-      - ruzivoflow_static:/app/static/ruzivoflow
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+      - ./html:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM;
+      while :; do certbot renew --quiet;
+      sleep 12h & wait $${!}; done;'
     restart: unless-stopped
     networks:
       - gateway_net
 
 volumes:
-  ruzivoflow_static:
-  ruzivoflow_media:
   certbot_etc:
+    external: true
+  ruzivoflow_static:
+    external: true
+  ruzivoflow_media:
+    external: true
 
 networks:
   gateway_net:
-    driver: bridge
+    external: true
+
 
 ``````````````````````````````````````````````````````````````````````````````````````
+
+docker volume create certbot_etc
+
+docker volume create ruzivoflow_static
+
+docker volume create ruzivoflow_media
 
 docker network create gateway_net
 
