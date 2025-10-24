@@ -17,6 +17,8 @@ services:
       db:
         condition: service_healthy # Wait for DB to be healthy before starting web
     restart: unless-stopped         # Always restart unless container is stopped manually   
+    networks:
+      - ruzivoflow_net     
 
   db:
     image: postgis/postgis:17-3.5  # PostgreSQL 17 with PostGIS 3.5
@@ -36,6 +38,8 @@ services:
       start_period: 30s    # Wait 30 seconds before starting health checks
       timeout: 10s         # Max 10 seconds per health check
     restart: unless-stopped  # Restart DB if it crashes   
+    networks:
+      - ruzivoflow_net      
 
   nginx:
     image: nginx:latest
@@ -51,7 +55,9 @@ services:
       - ruzivoflow_certbot_var:/var/lib/letsencrypt
     depends_on:
       - web
-    restart: unless-stopped       
+    restart: unless-stopped    
+    networks:
+      - ruzivoflow_net         
 
   certbot:
     image: certbot/certbot
@@ -62,7 +68,9 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d  # So Certbot can access nginx config if needed
       - ruzivoflow_static:/app/static
     entrypoint: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; certbot renew; done'"
-    restart: unless-stopped     
+    restart: unless-stopped    
+    networks:
+      - ruzivoflow_net       
 
 # Define named volumes
 volumes:
@@ -71,4 +79,7 @@ volumes:
   ruzivoflow_media:   # Stores uploaded media persistently
   ruzivoflow_certbot_etc:    # Stores Let's Encrypt certificates
   ruzivoflow_certbot_var:    # Stores Certbot working files  
+  
+networks:
+  ruzivoflow_net:    
 
