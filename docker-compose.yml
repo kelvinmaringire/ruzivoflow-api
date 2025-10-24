@@ -16,12 +16,10 @@ services:
     depends_on:
       db:
         condition: service_healthy # Wait for DB to be healthy before starting web
-    restart: unless-stopped         # Always restart unless container is stopped manually
-    networks:
-      - gateway_net
+    restart: unless-stopped         # Always restart unless container is stopped manually   
 
   db:
-    image: postgres:17              # Use PostgreSQL 17 (long-term support)
+    image: postgis/postgis:17-3.5  # PostgreSQL 17 with PostGIS 3.5
     container_name: ruzivoflow_db
     # Persistent volume to keep DB data even if container is removed
     volumes:
@@ -37,19 +35,40 @@ services:
       retries: 5           # Maximum 5 retries before marking as unhealthy
       start_period: 30s    # Wait 30 seconds before starting health checks
       timeout: 10s         # Max 10 seconds per health check
-    restart: unless-stopped  # Restart DB if it crashes
-    networks:
-      - gateway_net
+    restart: unless-stopped  # Restart DB if it crashes   
+
+  nginx:
+    image: nginx:latest
+    container_name: ruzivoflow_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ruzivoflow_static:/app/static
+      - ruzivoflow_media:/app/media   
+      - ruzivoflow_certbot_etc:/etc/letsencrypt   # ✅ certs available to Nginx
+      - ruzivoflow_certbot_var:/var/lib/letsencrypt
+    depends_on:
+      - web
+    restart: unless-stopped       
+
+  certbot:
+    image: certbot/certbot
+    container_name: ruzivoflow_certbot
+    volumes:
+      - ruzivoflow_certbot_etc:/etc/letsencrypt
+      - ruzivoflow_certbot_var:/var/lib/letsencrypt
+      - ./nginx/conf.d:/etc/nginx/conf.d  # So Certbot can access nginx config if needed
+      - ruzivoflow_static:/app/static
+    entrypoint: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; certbot renew; done'"
+    restart: unless-stopped     
 
 # Define named volumes
 volumes:
   ruzivoflow_db:    # Stores PostgreSQL data persistently
   ruzivoflow_static:  # Stores static files persistently
-    external: true 
   ruzivoflow_media:   # Stores uploaded media persistently
-    external: true 
-
-networks:
-  gateway_net:
-    external: true    
+  ruzivoflow_certbot_etc:    # Stores Let's Encrypt certificates
+  ruzivoflow_certbot_var:    # Stores Certbot working files  
 
