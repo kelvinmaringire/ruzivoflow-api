@@ -229,3 +229,5 @@ server {
 docker exec ruzivoflow_nginx nginx -t
 
 docker exec ruzivoflow_nginx nginx -s reload
+
+docker stop $(docker ps -q)

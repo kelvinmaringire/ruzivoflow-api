@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "search",
     "accounts",
     "node_editor",
+    "blog",
     
     "wagtail.contrib.forms",
     "wagtail.contrib.redirects",
