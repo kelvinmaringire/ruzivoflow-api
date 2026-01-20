@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.urls import include, path
 from django.contrib import admin
+from django.views.static import serve
+import os  # Add this import
 
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail import urls as wagtail_urls
@@ -14,23 +16,43 @@ from rest_framework_simplejwt.views import (
 )
 
 from .api import api_router
+from home.views import serve_spa  # Import the SPA view
 
 urlpatterns = [
+    # API routes (must come before SPA catch-all)
     path('api/v2/', api_router.urls),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Admin routes
     path("django-admin/", admin.site.urls),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
-    path("search/", search_views.search, name="search"),
     
+    # Other app routes
+    path("search/", search_views.search, name="search"),
     path('accounts/', include('accounts.urls')),
     path('content_api/', include('content_api.urls')),
     path('node_editor/', include('node_editor.urls')),
+    path('thedataeditor/', include('node_editor.urls')),  # Alias for frontend compatibility
     path('blog/', include('blog.urls')),
     
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Serve static assets from dist/assets at /assets/
+    path('assets/<path:path>', serve, {
+        'document_root': os.path.join(settings.BASE_DIR, 'dist', 'assets')
+    }),
+    path('icons/<path:path>', serve, {
+        'document_root': os.path.join(settings.BASE_DIR, 'dist', 'icons')
+    }),
+    path('favicon.ico', serve, {
+        'document_root': settings.BASE_DIR,
+        'path': 'dist/favicon.ico'
+    }),
+    path('favicon.png', serve, {
+        'document_root': settings.BASE_DIR,
+        'path': 'dist/favicon.png'
+    }),
 ]
-
 
 if settings.DEBUG:
     from django.conf.urls.static import static
@@ -40,12 +62,10 @@ if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-urlpatterns = urlpatterns + [
-    # For anything not caught by a more specific rule above, hand over to
-    # Wagtail's page serving mechanism. This should be the last pattern in
-    # the list:
-    path("", include(wagtail_urls)),
-    # Alternatively, if you want Wagtail pages to be served from a subpath
-    # of your site, rather than the site root:
-    #    path("pages/", include(wagtail_urls)),
+# SPA catch-all: serve index.html for all other routes
+# This must be last to catch all non-API routes
+# Replace Wagtail's catch-all with SPA serving
+urlpatterns += [
+    path('', serve_spa, name='spa'),
+    path('<path:path>', serve_spa),  # Catch-all for SPA routes
 ]
