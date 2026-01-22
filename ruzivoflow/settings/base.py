@@ -79,8 +79,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:9000",
     "http://127.0.0.1:9000",
     "http://0.0.0.0:8000",
-    "https://databet.co.za",
-    "https://www.databet.co.za",
+    "https://ruzivoflow.com",
+    "https://www.ruzivoflow.com",
 ]
 
 
