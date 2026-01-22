@@ -17,8 +17,11 @@ services:
         condition: service_healthy # Wait for DB to be healthy before starting web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ruzivoflow_web.rule=Host(`databet.co.za`)"
-      - "traefik.http.routers.ruzivoflow_web.entrypoints=web"
+      - "traefik.http.routers.ruzivoflow_websecure.tls=true"
+      - "traefik.http.routers.ruzivoflow_websecure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.ruzivoflow_websecure.entrypoints=websecure"
+      - "traefik.http.routers.ruzivoflow_websecure.rule=Host(`ruzivoflow.com`)"
+      - "traefik.http.services.ruzivoflow.loadbalancer.server.port=8000"
     restart: unless-stopped         # Always restart unless container is stopped manually   
     networks:
       - ruzivoflow_net     
@@ -51,13 +54,17 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
     ports:
       - "80:80"
       - "443:443"
       - "8080:8080"
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}  
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro 
+      - ./data/certs/:/var/traefik/certs/:rw
     restart: unless-stopped      
     networks:
       - ruzivoflow_net     
