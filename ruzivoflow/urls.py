@@ -37,20 +37,20 @@ urlpatterns = [
     path('thedataeditor/', include('node_editor.urls')),  # Alias for frontend compatibility
     path('blog/', include('blog.urls')),
     
-    # Serve static assets from dist/assets at /assets/
+    # Serve static assets from www/assets at /assets/
     path('assets/<path:path>', serve, {
-        'document_root': os.path.join(settings.BASE_DIR, 'dist', 'assets')
+        'document_root': os.path.join(settings.BASE_DIR, 'www', 'assets')
     }),
     path('icons/<path:path>', serve, {
-        'document_root': os.path.join(settings.BASE_DIR, 'dist', 'icons')
+        'document_root': os.path.join(settings.BASE_DIR, 'www', 'icons')
     }),
     path('favicon.ico', serve, {
         'document_root': settings.BASE_DIR,
-        'path': 'dist/favicon.ico'
+        'path': 'www/favicon.ico'
     }),
     path('favicon.png', serve, {
         'document_root': settings.BASE_DIR,
-        'path': 'dist/favicon.png'
+        'path': 'www/favicon.png'
     }),
 ]
 
