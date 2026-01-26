@@ -8,6 +8,8 @@ docker stop $(docker ps -q)
 
 rm -rf ruzivoflow-api
 
+docker exec ruzivoflow_web python manage.py test
+
 ```
 
 ```bash

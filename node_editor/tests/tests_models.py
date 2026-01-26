@@ -4,7 +4,7 @@ from wagtail.images.tests.utils import get_test_image_file
 from wagtail.images.models import Image
 from wagtail.documents.models import Document
 
-from .models import NodeCategory, Node, Workflow, NodeItem, Connection
+from node_editor.models import NodeCategory, Node, Workflow, NodeItem, Connection
 
 
 class NodeModelsTestCase(TestCase):

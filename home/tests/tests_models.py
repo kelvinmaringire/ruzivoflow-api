@@ -2,9 +2,9 @@ from django.test import TestCase
 from wagtail.models import Page
 from wagtail.images.models import Image
 from wagtail.images.tests.utils import get_test_image_file
-from wagtail.core.blocks.stream_block import StreamValue
+from wagtail.blocks.stream_block import StreamValue
 
-from home.models import HomePage, ServicesBlock, FeaturesBlock, PortfolioItemBlock, SocialMediaBlock
+from home.models import HomePage
 
 
 class HomePageTestCase(TestCase):
@@ -67,7 +67,10 @@ class HomePageTestCase(TestCase):
     def test_services_streamfield(self):
         self.homepage.services = StreamValue(
             self.homepage.services.stream_block,
-            [('service', {'icon': 'fa-star', 'title': 'Service 1', 'subtitle': 'Desc'})],
+            [{
+                'type': 'service',
+                'value': {'icon': 'fa-star', 'title': 'Service 1', 'subtitle': '<p>Desc</p>'}
+            }],
             True
         )
         self.homepage.save()
@@ -78,7 +81,10 @@ class HomePageTestCase(TestCase):
     def test_features_streamfield(self):
         self.homepage.features = StreamValue(
             self.homepage.features.stream_block,
-            [('feature', {'icon': 'fa-check', 'title': 'Feature 1', 'subtitle': 'Desc'})],
+            [{
+                'type': 'feature',
+                'value': {'icon': 'fa-check', 'title': 'Feature 1', 'subtitle': '<p>Desc</p>'}
+            }],
             True
         )
         self.homepage.save()
@@ -89,17 +95,20 @@ class HomePageTestCase(TestCase):
     def test_portfolio_items_streamfield(self):
         self.homepage.portfolio_items = StreamValue(
             self.homepage.portfolio_items.stream_block,
-            [('portfolio_item', {
-                'name': 'App 1',
-                'client': 'Client A',
-                'client_logo': self.hero_image,
-                'image': self.hero_image,
-                'platform': 'iOS',
-                'description': '<p>Description</p>',
-                'technologies': [{'name': 'Django'}],
-                'website_url': 'https://example.com',
-                'year': 2025
-            })],
+            [{
+                'type': 'portfolio_item',
+                'value': {
+                    'name': 'App 1',
+                    'client': 'Client A',
+                    'client_logo': self.hero_image.id,
+                    'image': self.hero_image.id,
+                    'platform': 'iOS',
+                    'description': '<p>Description</p>',
+                    'technologies': [{'name': 'Django'}],
+                    'website_url': 'https://example.com',
+                    'year': 2025
+                }
+            }],
             True
         )
         self.homepage.save()
@@ -110,7 +119,10 @@ class HomePageTestCase(TestCase):
     def test_social_media_streamfield(self):
         self.homepage.social_media_items = StreamValue(
             self.homepage.social_media_items.stream_block,
-            [('social_media', {'name': 'Twitter', 'image': self.hero_image, 'link': 'https://twitter.com'})],
+            [{
+                'type': 'social_media',
+                'value': {'name': 'Twitter', 'image': self.hero_image.id, 'link': 'https://twitter.com'}
+            }],
             True
         )
         self.homepage.save()
