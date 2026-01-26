@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "whitenoise.runserver_nostatic", # New INSTALLED_APPS
     "django.contrib.staticfiles",
     
     "wagtail_modeladmin",
@@ -212,7 +213,6 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        #"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }

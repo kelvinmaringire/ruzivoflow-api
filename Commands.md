@@ -2,6 +2,15 @@
 
 
 ```bash
+docker network create ruzivoflow_net
+
+docker stop $(docker ps -q)
+
+rm -rf ruzivoflow-api
+
+```
+
+```bash
 docker compose run web wagtail start ruzivoflow .
 
 docker compose run web python manage.py migrate
@@ -114,11 +123,9 @@ psql -U postgres -c "DROP DATABASE ruzivoflow_db;"
 
 psql -U postgres -c "CREATE DATABASE ruzivoflow_db;"
 
-pg_restore -U postgres -d ruzivoflow_db /tmp/data_backup.dump
-
 exit
+
+docker compose exec -T db pg_restore -U postgres -d buybuddy_db < data_backup.dump
 ```
 
-```bash
-docker stop $(docker ps -q)
-```
+

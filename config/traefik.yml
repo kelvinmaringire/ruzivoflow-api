@@ -2,7 +2,7 @@ global:
   checkNewVersion: false
   sendAnonymousUsage: false
 log:
-  level: DEBUG  
+  level: INFO  
 api:
   dashboard: true
   insecure: true
