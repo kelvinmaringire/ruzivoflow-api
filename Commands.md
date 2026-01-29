@@ -10,6 +10,12 @@ rm -rf ruzivoflow-api
 
 docker exec ruzivoflow_web python manage.py test
 
+git checkout main
+git pull origin main          # make sure main is up to date
+git merge develop             # merge develop into main
+git push origin main          # push the merge to GitHub
+
+
 ```
 
 ```bash
