@@ -8,6 +8,10 @@ docker stop $(docker ps -q)
 
 rm -rf ruzivoflow-api
 
+ssh-keygen -t rsa -b 4096 -C "$(whoami)@$(hostname)" -f ~/.ssh/github
+
+cat /c/Users/User/.ssh/github
+
 ```
 
 ```bash
