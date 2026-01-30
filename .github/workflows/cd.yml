@@ -1,0 +1,39 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy on VPS (build & run via Docker Compose)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            cd /srv/ruzivoflow
+
+            echo "🔄 Updating code"
+            git pull origin main
+
+            echo "🛑 Stopping containers"
+            docker compose down
+
+            echo "🔨 Building containers"
+            docker compose build --no-cache
+
+            echo "🚀 Starting containers"
+            docker compose up -d
+
+            echo "🧹 Cleanup"
+            docker system prune -f
