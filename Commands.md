@@ -8,13 +8,9 @@ docker stop $(docker ps -q)
 
 rm -rf ruzivoflow-api
 
-docker exec ruzivoflow_web python manage.py test
+ssh-keygen -t rsa -b 4096 -C "$(whoami)@$(hostname)" -f ~/.ssh/github
 
-git checkout main
-git pull origin main          # make sure main is up to date
-git merge develop             # merge develop into main
-git push origin main          # push the merge to GitHub
-
+cat /c/Users/User/.ssh/github
 
 ```
 
