@@ -69,9 +69,9 @@ docker run hello-world
 ## Clone and Setup Wagtail Project
 
 ```bash
-mkdir -p ~/webapps
+mkdir -p ~/srv
 
-cd ~/webapps
+cd ~/srv
 
 sudo git clone https://github.com/kelvinmaringire/ruzivoflow-api.git
 

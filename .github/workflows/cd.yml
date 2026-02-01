@@ -21,7 +21,7 @@ jobs:
           script: |
             set -e
 
-            cd /srv/ruzivoflow
+            cd /srv/ruzivoflow-api
 
             echo "🔄 Updating code"
             git pull origin main
