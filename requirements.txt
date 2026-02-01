@@ -45,5 +45,4 @@ urllib3==2.5.0
 wagtail==7.1.1
 wagtail-modeladmin==2.2.0
 wheel==0.45.1
-whitenoise==6.11.0
 Willow==1.11.0

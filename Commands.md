@@ -129,7 +129,7 @@ psql -U postgres -c "CREATE DATABASE ruzivoflow_db;"
 
 exit
 
-docker compose exec -T db pg_restore -U postgres -d buybuddy_db < data_backup.dump
+docker compose exec -T db pg_restore -U postgres -d ruzivoflow_db < data_backup.dump
 ```
 
 

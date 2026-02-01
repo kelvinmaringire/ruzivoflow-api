@@ -47,6 +47,27 @@ services:
     networks:
       - ruzivoflow_net     
       
+  nginx:
+    image: nginx:alpine
+    container_name: ruzivoflow_nginx
+    volumes:
+      - ruzivoflow_static:/var/www/static:ro
+      - ruzivoflow_media:/var/www/media:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ruzivoflow_nginx.tls=true"
+      - "traefik.http.routers.ruzivoflow_nginx.tls.certresolver=cloudflare"
+      - "traefik.http.routers.ruzivoflow_nginx.entrypoints=websecure"
+      - "traefik.http.routers.ruzivoflow_nginx.rule=Host(`ruzivoflow.com`) && (PathPrefix(`/static`) || PathPrefix(`/media`))"
+      - "traefik.http.routers.ruzivoflow_nginx.priority=100"
+      - "traefik.http.services.ruzivoflow_nginx.loadbalancer.server.port=80"
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - ruzivoflow_net
+
   traefik:
     image: traefik:v3.6
     container_name: ruzivoflow_traefik
@@ -63,7 +84,7 @@ services:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}  
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  
-      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro 
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro 
       - ./data/certs/:/var/traefik/certs/:rw
     restart: unless-stopped      
     networks:
