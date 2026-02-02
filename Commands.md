@@ -84,52 +84,128 @@ chmod +x entrypoint.sh
 docker compose up -d
 ```
 
-## Media Files Backup & Restore
+## Unified Backup & Restore (Media + Database + .env → Google Drive)
 
-### Backup Media Files
+### Setup rclone (One-time)
 
 ```bash
-# 1️⃣ Make sure local backup folder exists
-mkdir -p ./media
+# Install rclone
+curl https://rclone.org/install.sh | sudo bash
 
-# 2️⃣ Copy all media files from container to local backup folder
-docker cp ruzivoflow_web:/app/media/. ./media
+# Configure Google Drive remote
+rclone config
+
+# Follow the prompts:
+# 1. Select "n" for new remote
+# 2. Name it "gdrive" (or your preferred name)
+# 3. Select "drive" (Google Drive)
+# 4. Leave client_id and client_secret blank (uses defaults)
+# 5. Choose scope (full access recommended for backups)
+# 6. Complete OAuth authentication in browser
+# 7. Verify configuration: rclone listremotes
 ```
 
-### Restore Media Files
+### Backup (Media + Database + .env)
 
 ```bash
-# 1️⃣ Copy media files from local backup to container
+# Make scripts executable (first time only)
+chmod +x scripts/backup.sh scripts/restore.sh
+
+# Run backup script
+./scripts/backup.sh
+
+# The script will:
+# - Backup media files from container/volume
+# - Backup PostgreSQL database (using credentials from .env)
+# - Backup .env file
+# - Create a timestamped .zip file
+# - Upload to Google Drive: gdrive:RuzivoflowBackups/
+# - Keep last 2 backups locally (configurable via KEEP_LOCAL_BACKUPS env var)
+# - Log all operations to backup.log
+```
+
+**Configuration Options:**
+```bash
+# Customize rclone remote name (default: gdrive)
+export RCLONE_REMOTE="gdrive"
+
+# Customize Google Drive folder (default: RuzivoflowBackups)
+export RCLONE_PATH="RuzivoflowBackups"
+
+# Customize number of local backups to keep (default: 2)
+export KEEP_LOCAL_BACKUPS=3
+
+# Then run backup
+./scripts/backup.sh
+```
+
+### Restore from Backup
+
+```bash
+# Restore latest backup
+./scripts/restore.sh latest
+
+# Restore specific backup
+./scripts/restore.sh ruzivoflow_backup_20240202_020000.zip
+
+# The script will:
+# - Download backup from Google Drive
+# - Extract backup archive
+# - Restore media files to container
+# - Drop and recreate database, then restore from dump
+# - Restore .env file (with confirmation prompt)
+# - Clean up temporary files
+```
+
+**Restore Process:**
+- Media files: Automatically copied to `ruzivoflow_web` container
+- Database: Requires confirmation before dropping/recreating (destructive operation)
+- .env file: Requires confirmation before overwriting (previous .env backed up to `.env.backup`)
+
+### Scheduled Backups (Cron)
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add daily backup at 2 AM
+0 2 * * * cd /home/user/srv/ruzivoflow-api && ./scripts/backup.sh >> backup.log 2>&1
+
+# Or with custom environment variables
+0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=RuzivoflowBackups ./scripts/backup.sh >> backup.log 2>&1
+
+# Verify cron job
+crontab -l
+```
+
+### Manual Backup & Restore (Legacy Methods)
+
+<details>
+<summary>Click to expand manual backup/restore commands</summary>
+
+#### Media Files Backup & Restore
+
+```bash
+# Backup Media Files
+mkdir -p ./media
+docker cp ruzivoflow_web:/app/media/. ./media
+
+# Restore Media Files
 docker cp ./media/. ruzivoflow_web:/app/media/
 ```
 
-## PostgreSQL Backup & Restore
-
-### Backup Database
+#### PostgreSQL Backup & Restore
 
 ```bash
-# Backup inside container
-# Backup Database (Windows-compatible)
+# Backup Database
 docker compose exec -T db pg_dump -U postgres -d ruzivoflow_db -F c > ./data_backup.dump
 
-# Copy backup to local machine
-docker cp ruzivoflow_db:/var/lib/postgresql/data/data_backup.dump ./data_backup.dump
-```
-
-### Restore Database
-
-```bash
-docker cp ./data_backup.dump ruzivoflow_db:/tmp/data_backup.dump
-
-docker compose exec db bash
-
-psql -U postgres -c "DROP DATABASE ruzivoflow_db;"
-
-psql -U postgres -c "CREATE DATABASE ruzivoflow_db;"
-
-exit
-
+# Restore Database
+docker compose exec -T db psql -U postgres -c "DROP DATABASE ruzivoflow_db;"
+docker compose exec -T db psql -U postgres -c "CREATE DATABASE ruzivoflow_db;"
 docker compose exec -T db pg_restore -U postgres -d ruzivoflow_db < data_backup.dump
 ```
+
+</details>
 
 
