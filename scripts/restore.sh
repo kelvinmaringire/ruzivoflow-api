@@ -119,12 +119,12 @@ get_backup_filename() {
     fi
 }
 
-# Download backup from Google Drive
+# Download backup from Google Drive (only echoes file path to stdout for capture)
 download_backup() {
     local backup_file=$1
     local local_file="$PROJECT_DIR/$backup_file"
     
-    log "Downloading backup from Google Drive..."
+    log "Downloading backup from Google Drive..." >&2
     
     # Ensure destination directory exists
     mkdir -p "$PROJECT_DIR"
@@ -137,10 +137,11 @@ download_backup() {
         remote_path="${RCLONE_REMOTE}:$backup_file"
     fi
     
-    if rclone copyto "$remote_path" "$local_file" --progress 2>&1; then
+    # rclone --progress goes to stderr so it displays but isn't captured
+    if rclone copyto "$remote_path" "$local_file" --progress; then
         if [ -f "$local_file" ]; then
             FILE_SIZE=$(du -h "$local_file" | cut -f1)
-            log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)"
+            log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)" >&2
             echo "$local_file"
             return 0
         fi
@@ -148,29 +149,30 @@ download_backup() {
     
     # Fallback: try root path (when root_folder_id points to RuzivoflowBackups)
     if [ -n "$RCLONE_PATH" ]; then
-        log "Trying root path..."
+        log "Trying root path..." >&2
         remote_path="${RCLONE_REMOTE}:$backup_file"
-        if rclone copyto "$remote_path" "$local_file" --progress 2>&1; then
+        if rclone copyto "$remote_path" "$local_file" --progress; then
             if [ -f "$local_file" ]; then
                 FILE_SIZE=$(du -h "$local_file" | cut -f1)
-                log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)"
+                log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)" >&2
                 echo "$local_file"
                 return 0
             fi
         fi
     fi
     
-    log_error "Failed to download backup from Google Drive"
-    log_error "Run: rclone ls ${RCLONE_REMOTE}: to verify files exist"
+    log_error "Failed to download backup from Google Drive" >&2
+    log_error "Run: rclone ls ${RCLONE_REMOTE}: to verify files exist" >&2
     return 1
 }
 
 # Extract backup archive (uses Docker alpine to avoid requiring unzip on host)
+# Only echoes backup dir path to stdout for capture
 extract_backup() {
     local zip_file=$1
     local extract_dir=$(mktemp -d)
     
-    log "Extracting backup archive..."
+    log "Extracting backup archive..." >&2
     
     if docker run --rm \
         -v "$zip_file":/backup.zip:ro \
@@ -178,16 +180,16 @@ extract_backup() {
         alpine sh -c "apk add --no-cache unzip > /dev/null 2>&1 && unzip -q /backup.zip -d /out"; then
         BACKUP_DIR="$extract_dir/backup"
         if [ -d "$BACKUP_DIR" ]; then
-            log_success "Backup extracted to: $BACKUP_DIR"
+            log_success "Backup extracted to: $BACKUP_DIR" >&2
             echo "$BACKUP_DIR"
             return 0
         else
-            log_error "Backup directory not found in archive (expected 'backup/' folder)"
+            log_error "Backup directory not found in archive (expected 'backup/' folder)" >&2
             rm -rf "$extract_dir"
             return 1
         fi
     else
-        log_error "Failed to extract backup archive"
+        log_error "Failed to extract backup archive" >&2
         rm -rf "$extract_dir"
         return 1
     fi
