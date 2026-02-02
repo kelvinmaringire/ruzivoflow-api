@@ -83,19 +83,23 @@ get_backup_filename() {
     if [ "$arg" = "latest" ]; then
         log "Finding latest backup in Google Drive..."
         
-        # List files from Google Drive
-        local file_list=$(rclone lsf "${RCLONE_REMOTE}:${RCLONE_PATH}/" 2>&1)
-        if [ $? -ne 0 ]; then
-            log_error "Failed to list files from Google Drive: $file_list"
-            return 1
+        # Try listing from configured path first, then root (for root_folder_id config)
+        local file_list=""
+        local list_path="${RCLONE_REMOTE}:"
+        [ -n "$RCLONE_PATH" ] && list_path="${RCLONE_REMOTE}:${RCLONE_PATH}/"
+        
+        file_list=$(rclone lsf "$list_path" 2>&1) || true
+        if [ -z "$file_list" ] && [ -n "$RCLONE_PATH" ]; then
+            log "Trying root path (in case root_folder_id points to backup folder)..."
+            file_list=$(rclone lsf "${RCLONE_REMOTE}:" 2>&1) || true
         fi
         
         BACKUP_FILE=$(echo "$file_list" | grep "^ruzivoflow_backup_.*\.zip$" | sort -r | head -n 1)
         
         if [ -z "$BACKUP_FILE" ]; then
             log_error "No backup files found in Google Drive"
-            log "Available files:"
-            echo "$file_list" | head -n 10
+            log "Tried paths: $list_path and ${RCLONE_REMOTE}:"
+            log "Run: rclone lsf ${RCLONE_REMOTE}: or rclone ls ${RCLONE_REMOTE}: to list files"
             return 1
         fi
         
@@ -125,8 +129,14 @@ download_backup() {
     # Ensure destination directory exists
     mkdir -p "$PROJECT_DIR"
     
-    # Try primary path first
-    local remote_path="${RCLONE_REMOTE}:${RCLONE_PATH}/$backup_file"
+    # Build remote path - try configured path first, then root
+    local remote_path=""
+    if [ -n "$RCLONE_PATH" ]; then
+        remote_path="${RCLONE_REMOTE}:${RCLONE_PATH}/$backup_file"
+    else
+        remote_path="${RCLONE_REMOTE}:$backup_file"
+    fi
+    
     if rclone copyto "$remote_path" "$local_file" --progress 2>&1; then
         if [ -f "$local_file" ]; then
             FILE_SIZE=$(du -h "$local_file" | cut -f1)
@@ -136,21 +146,22 @@ download_backup() {
         fi
     fi
     
-    # Fallback: try "My Drive/RuzivoflowBackups" (common Google Drive structure)
-    local alt_path="${RCLONE_REMOTE}:My Drive/${RCLONE_PATH}/$backup_file"
-    log "Trying alternative path: $alt_path"
-    if rclone copyto "$alt_path" "$local_file" --progress 2>&1; then
-        if [ -f "$local_file" ]; then
-            FILE_SIZE=$(du -h "$local_file" | cut -f1)
-            log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)"
-            echo "$local_file"
-            return 0
+    # Fallback: try root path (when root_folder_id points to RuzivoflowBackups)
+    if [ -n "$RCLONE_PATH" ]; then
+        log "Trying root path..."
+        remote_path="${RCLONE_REMOTE}:$backup_file"
+        if rclone copyto "$remote_path" "$local_file" --progress 2>&1; then
+            if [ -f "$local_file" ]; then
+                FILE_SIZE=$(du -h "$local_file" | cut -f1)
+                log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)"
+                echo "$local_file"
+                return 0
+            fi
         fi
     fi
     
     log_error "Failed to download backup from Google Drive"
-    log_error "Paths tried: $remote_path and $alt_path"
-    log_error "Run: rclone lsd ${RCLONE_REMOTE}: to see your folder structure"
+    log_error "Run: rclone ls ${RCLONE_REMOTE}: to verify files exist"
     return 1
 }
 
