@@ -178,7 +178,8 @@ restore_media() {
     fi
 }
 
-# Load environment variables from .env
+# Load environment variables from .env (only vars needed for restore)
+# Uses safe extraction to avoid syntax errors from special chars in other vars (e.g. DJANGO_SECRET_KEY)
 load_env() {
     log "Loading environment variables from .env..."
     
@@ -187,10 +188,17 @@ load_env() {
         return 1
     fi
     
-    # Source .env file (handle comments and empty lines)
-    set -a
-    source <(grep -v '^#' "$PROJECT_DIR/.env" | grep -v '^$' | sed 's/^/export /')
-    set +a
+    while IFS= read -r line; do
+        [[ "$line" =~ ^# ]] && continue
+        [[ -z "$line" ]] && continue
+        key="${line%%=*}"
+        value="${line#*=}"
+        case "$key" in
+            POSTGRES_USER)  export POSTGRES_USER="$value" ;;
+            POSTGRES_DB)    export POSTGRES_DB="$value" ;;
+            POSTGRES_PASSWORD) export POSTGRES_PASSWORD="$value" ;;
+        esac
+    done < "$PROJECT_DIR/.env"
     
     # Check required variables
     if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_DB" ]; then
