@@ -36,6 +36,8 @@ log_warning() {
 
 # Show usage
 usage() {
+    log_error "Missing argument. Specify which backup to restore."
+    echo ""
     echo "Usage: $0 [backup_filename|latest]"
     echo ""
     echo "Examples:"
@@ -125,21 +127,24 @@ download_backup() {
     fi
 }
 
-# Extract backup archive
+# Extract backup archive (uses Docker alpine to avoid requiring unzip on host)
 extract_backup() {
     local zip_file=$1
     local extract_dir=$(mktemp -d)
     
     log "Extracting backup archive..."
     
-    if unzip -q "$zip_file" -d "$extract_dir"; then
+    if docker run --rm \
+        -v "$zip_file":/backup.zip:ro \
+        -v "$extract_dir":/out \
+        alpine sh -c "apk add --no-cache unzip > /dev/null 2>&1 && unzip -q /backup.zip -d /out"; then
         BACKUP_DIR="$extract_dir/backup"
         if [ -d "$BACKUP_DIR" ]; then
             log_success "Backup extracted to: $BACKUP_DIR"
             echo "$BACKUP_DIR"
             return 0
         else
-            log_error "Backup directory not found in archive"
+            log_error "Backup directory not found in archive (expected 'backup/' folder)"
             rm -rf "$extract_dir"
             return 1
         fi
