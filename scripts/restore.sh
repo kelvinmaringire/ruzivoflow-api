@@ -122,20 +122,36 @@ download_backup() {
     
     log "Downloading backup from Google Drive..."
     
-    if rclone copy "${RCLONE_REMOTE}:${RCLONE_PATH}/$backup_file" "$PROJECT_DIR/" --progress; then
+    # Ensure destination directory exists
+    mkdir -p "$PROJECT_DIR"
+    
+    # Try primary path first
+    local remote_path="${RCLONE_REMOTE}:${RCLONE_PATH}/$backup_file"
+    if rclone copyto "$remote_path" "$local_file" --progress 2>&1; then
         if [ -f "$local_file" ]; then
             FILE_SIZE=$(du -h "$local_file" | cut -f1)
             log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)"
             echo "$local_file"
             return 0
-        else
-            log_error "Downloaded file not found"
-            return 1
         fi
-    else
-        log_error "Failed to download backup from Google Drive"
-        return 1
     fi
+    
+    # Fallback: try "My Drive/RuzivoflowBackups" (common Google Drive structure)
+    local alt_path="${RCLONE_REMOTE}:My Drive/${RCLONE_PATH}/$backup_file"
+    log "Trying alternative path: $alt_path"
+    if rclone copyto "$alt_path" "$local_file" --progress 2>&1; then
+        if [ -f "$local_file" ]; then
+            FILE_SIZE=$(du -h "$local_file" | cut -f1)
+            log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)"
+            echo "$local_file"
+            return 0
+        fi
+    fi
+    
+    log_error "Failed to download backup from Google Drive"
+    log_error "Paths tried: $remote_path and $alt_path"
+    log_error "Run: rclone lsd ${RCLONE_REMOTE}: to see your folder structure"
+    return 1
 }
 
 # Extract backup archive (uses Docker alpine to avoid requiring unzip on host)
