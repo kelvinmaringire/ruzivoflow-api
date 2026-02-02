@@ -24,7 +24,8 @@ jobs:
             cd /root/srv/ruzivoflow-api
 
             echo "🔄 Updating code"
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
 
             echo "🛑 Stopping containers"
             docker compose down
