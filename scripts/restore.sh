@@ -81,34 +81,34 @@ get_backup_filename() {
     fi
     
     if [ "$arg" = "latest" ]; then
-        log "Finding latest backup in Google Drive..."
+        log "Finding latest backup in Google Drive..." >&2
         
         # Try listing from configured path first, then root (for root_folder_id config)
         local file_list=""
         local list_path="${RCLONE_REMOTE}:"
         [ -n "$RCLONE_PATH" ] && list_path="${RCLONE_REMOTE}:${RCLONE_PATH}/"
         
-        file_list=$(rclone lsf "$list_path" 2>&1) || true
+        file_list=$(rclone lsf "$list_path" 2>/dev/null) || true
         if [ -z "$file_list" ] && [ -n "$RCLONE_PATH" ]; then
-            log "Trying root path (in case root_folder_id points to backup folder)..."
-            file_list=$(rclone lsf "${RCLONE_REMOTE}:" 2>&1) || true
+            log "Trying root path (in case root_folder_id points to backup folder)..." >&2
+            file_list=$(rclone lsf "${RCLONE_REMOTE}:" 2>/dev/null) || true
         fi
         
         BACKUP_FILE=$(echo "$file_list" | grep "^ruzivoflow_backup_.*\.zip$" | sort -r | head -n 1)
         
         if [ -z "$BACKUP_FILE" ]; then
-            log_error "No backup files found in Google Drive"
-            log "Tried paths: $list_path and ${RCLONE_REMOTE}:"
-            log "Run: rclone lsf ${RCLONE_REMOTE}: or rclone ls ${RCLONE_REMOTE}: to list files"
+            log_error "No backup files found in Google Drive" >&2
+            log "Tried paths: $list_path and ${RCLONE_REMOTE}:" >&2
+            log "Run: rclone lsf ${RCLONE_REMOTE}: or rclone ls ${RCLONE_REMOTE}: to list files" >&2
             return 1
         fi
         
-        log_success "Found latest backup: $BACKUP_FILE"
+        log_success "Found latest backup: $BACKUP_FILE" >&2
         echo "$BACKUP_FILE"
     else
         # Validate filename format
         if [[ ! "$arg" =~ ^ruzivoflow_backup_.*\.zip$ ]]; then
-            log_warning "Filename doesn't match expected pattern: ruzivoflow_backup_*.zip"
+            log_warning "Filename doesn't match expected pattern: ruzivoflow_backup_*.zip" >&2
             read -p "Continue anyway? (y/N): " -n 1 -r
             echo
             if [[ ! $REPLY =~ ^[Yy]$ ]]; then
