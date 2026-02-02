@@ -93,7 +93,7 @@ load_env() {
     log_success "Environment variables loaded"
 }
 
-# Create backup directory structure
+# Create backup directory structure (sets BACKUP_DIR and BACKUP_NAME globally)
 create_backup_dir() {
     TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
     BACKUP_NAME="ruzivoflow_backup_${TIMESTAMP}"
@@ -101,15 +101,13 @@ create_backup_dir() {
     BACKUP_DIR="$TEMP_DIR/backup"
     
     mkdir -p "$BACKUP_DIR"
-    
     log "Created temporary backup directory: $BACKUP_DIR"
-    echo "$BACKUP_DIR"
-    echo "$BACKUP_NAME"
 }
 
 # Backup media files
 backup_media() {
     local backup_dir=$1
+    mkdir -p "$backup_dir/media"
     log "Backing up media files..."
     
     # Try to copy from container first
@@ -146,11 +144,11 @@ backup_media() {
         if docker run --rm \
             -v "$VOLUME_NAME":/media:ro \
             alpine \
-            tar -cf - -C /media . 2>/dev/null | tar -xf - -C "$backup_dir/media/" 2>/dev/null; then
+            sh -c "cd /media && tar -cf - ." 2>> "$LOG_FILE" | tar -xf - -C "$backup_dir/media/" 2>> "$LOG_FILE"; then
             log_success "Media files backed up from volume"
             return 0
         else
-            log_error "Failed to extract media from volume"
+            log_error "Failed to extract media from volume (check $LOG_FILE for details)"
         fi
     else
         log_error "Could not find media volume. Available volumes:"
@@ -204,7 +202,7 @@ backup_env() {
     fi
 }
 
-# Create zip archive
+# Create zip archive (returns zip file path)
 create_zip() {
     local backup_dir=$1
     local backup_name=$2
@@ -213,7 +211,7 @@ create_zip() {
     log "Creating zip archive..."
     
     cd "$(dirname "$backup_dir")"
-    if zip -r "$zip_file" "$(basename "$backup_dir")" > /dev/null 2>&1; then
+    if zip -rq "$zip_file" "$(basename "$backup_dir")"; then
         ZIP_SIZE=$(du -h "$zip_file" | cut -f1)
         log_success "Zip archive created: ${backup_name}.zip (size: $ZIP_SIZE)"
         echo "$zip_file"
@@ -269,9 +267,7 @@ main() {
     load_env
     
     # Create backup directory
-    BACKUP_INFO=$(create_backup_dir)
-    BACKUP_DIR=$(echo "$BACKUP_INFO" | head -n 1)
-    BACKUP_NAME=$(echo "$BACKUP_INFO" | tail -n 1)
+    create_backup_dir
     
     # Perform backups
     MEDIA_SUCCESS=false
@@ -297,9 +293,9 @@ main() {
         exit 1
     fi
     
-    # Create zip archive
-    ZIP_FILE=$(create_zip "$BACKUP_DIR" "$BACKUP_NAME")
-    if [ -z "$ZIP_FILE" ]; then
+    # Create zip archive (capture only last line - the path)
+    ZIP_FILE=$(create_zip "$BACKUP_DIR" "$BACKUP_NAME" | tail -n 1)
+    if [ -z "$ZIP_FILE" ] || [ ! -f "$ZIP_FILE" ]; then
         log_error "Failed to create zip archive"
         rm -rf "$(dirname "$BACKUP_DIR")"
         exit 1
