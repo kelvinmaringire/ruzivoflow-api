@@ -79,8 +79,6 @@ cd ruzivoflow-api
 
 nano .env   # (paste your environment variables here)
 
-chmod +x entrypoint.sh
-
 docker compose up -d
 ```
 
@@ -108,11 +106,8 @@ rclone config
 ### Backup (Media + Database + .env)
 
 ```bash
-# Make scripts executable (first time only)
-chmod +x scripts/backup.sh scripts/restore.sh
-
 # Run backup script
-./scripts/backup.sh
+bash scripts/backup.sh
 
 # The script will:
 # - Backup media files from container/volume
@@ -136,17 +131,17 @@ export RCLONE_PATH="RuzivoflowBackups"
 export KEEP_LOCAL_BACKUPS=3
 
 # Then run backup
-./scripts/backup.sh
+bash scripts/backup.sh
 ```
 
 ### Restore from Backup
 
 ```bash
 # Restore latest backup
-./scripts/restore.sh latest
+bash scripts/restore.sh latest
 
 # Restore specific backup
-./scripts/restore.sh ruzivoflow_backup_20240202_020000.zip
+bash scripts/restore.sh ruzivoflow_backup_20240202_020000.zip
 
 # The script will:
 # - Download backup from Google Drive
@@ -169,10 +164,10 @@ export KEEP_LOCAL_BACKUPS=3
 crontab -e
 
 # Add daily backup at 2 AM
-0 2 * * * cd /home/user/srv/ruzivoflow-api && ./scripts/backup.sh >> backup.log 2>&1
+0 2 * * * cd /home/user/srv/ruzivoflow-api && bash scripts/backup.sh >> backup.log 2>&1
 
 # Or with custom environment variables
-0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=RuzivoflowBackups ./scripts/backup.sh >> backup.log 2>&1
+0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=RuzivoflowBackups bash scripts/backup.sh >> backup.log 2>&1
 
 # Verify cron job
 crontab -l
