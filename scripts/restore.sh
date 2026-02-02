@@ -271,15 +271,6 @@ restore_database() {
         return 1
     fi
     
-    # Confirm database restore (destructive operation)
-    log_warning "This will DROP and RECREATE the database: $POSTGRES_DB"
-    read -p "Are you sure you want to continue? (yes/NO): " -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
-        log "Database restore cancelled"
-        return 1
-    fi
-    
     # Drop and recreate database
     log "Dropping existing database..."
     docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T db \
@@ -377,10 +368,9 @@ main() {
         exit 1
     fi
     
-    # Perform restores
+    # Perform restores (media and database only - .env is not restored)
     MEDIA_SUCCESS=false
     DB_SUCCESS=false
-    ENV_SUCCESS=false
     
     if restore_media "$BACKUP_DIR"; then
         MEDIA_SUCCESS=true
@@ -390,28 +380,18 @@ main() {
         DB_SUCCESS=true
     fi
     
-    if restore_env "$BACKUP_DIR"; then
-        ENV_SUCCESS=true
-    fi
-    
     # Cleanup extracted files
     rm -rf "$BACKUP_DIR"
     log "Temporary files cleaned up"
     
-    # Optionally remove downloaded zip
-    read -p "Remove downloaded backup file? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -f "$LOCAL_ZIP"
-        log "Downloaded backup file removed"
-    else
-        log "Downloaded backup file kept at: $LOCAL_ZIP"
-    fi
+    # Remove downloaded backup file
+    rm -f "$LOCAL_ZIP"
+    log "Downloaded backup file removed"
     
     log "=========================================="
-    if [ "$MEDIA_SUCCESS" = true ] || [ "$DB_SUCCESS" = true ] || [ "$ENV_SUCCESS" = true ]; then
+    if [ "$MEDIA_SUCCESS" = true ] || [ "$DB_SUCCESS" = true ]; then
         log_success "Restore process completed"
-        log "Media: $MEDIA_SUCCESS | Database: $DB_SUCCESS | .env: $ENV_SUCCESS"
+        log "Media: $MEDIA_SUCCESS | Database: $DB_SUCCESS"
     else
         log_error "Restore process completed with errors"
     fi
