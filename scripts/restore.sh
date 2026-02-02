@@ -137,8 +137,8 @@ download_backup() {
         remote_path="${RCLONE_REMOTE}:$backup_file"
     fi
     
-    # rclone --progress goes to stderr so it displays but isn't captured
-    if rclone copyto "$remote_path" "$local_file" --progress; then
+    # Redirect rclone output to stderr so it isn't captured by $(...)
+    if rclone copyto "$remote_path" "$local_file" --progress 1>&2; then
         if [ -f "$local_file" ]; then
             FILE_SIZE=$(du -h "$local_file" | cut -f1)
             log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)" >&2
@@ -151,7 +151,7 @@ download_backup() {
     if [ -n "$RCLONE_PATH" ]; then
         log "Trying root path..." >&2
         remote_path="${RCLONE_REMOTE}:$backup_file"
-        if rclone copyto "$remote_path" "$local_file" --progress; then
+        if rclone copyto "$remote_path" "$local_file" --progress 1>&2; then
             if [ -f "$local_file" ]; then
                 FILE_SIZE=$(du -h "$local_file" | cut -f1)
                 log_success "Backup downloaded: $backup_file (size: $FILE_SIZE)" >&2
@@ -355,14 +355,15 @@ main() {
         exit 1
     fi
     
-    # Download backup
-    LOCAL_ZIP=$(download_backup "$BACKUP_FILE")
-    if [ -z "$LOCAL_ZIP" ]; then
+    # Download backup (trim to handle any stray output in capture)
+    LOCAL_ZIP=$(download_backup "$BACKUP_FILE" | tail -n 1 | xargs)
+    if [ -z "$LOCAL_ZIP" ] || [ ! -f "$LOCAL_ZIP" ]; then
+        log_error "Failed to download backup"
         exit 1
     fi
     
-    # Extract backup
-    BACKUP_DIR=$(extract_backup "$LOCAL_ZIP")
+    # Extract backup (trim to handle any stray output in capture)
+    BACKUP_DIR=$(extract_backup "$LOCAL_ZIP" | tail -n 1 | xargs)
     if [ -z "$BACKUP_DIR" ]; then
         rm -f "$LOCAL_ZIP"
         exit 1
