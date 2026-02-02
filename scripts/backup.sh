@@ -203,15 +203,20 @@ backup_env() {
 }
 
 # Create zip archive (returns zip file path)
+# Uses Docker alpine to avoid requiring zip on host
 create_zip() {
     local backup_dir=$1
     local backup_name=$2
     local zip_file="$PROJECT_DIR/${backup_name}.zip"
+    local backup_parent="$(dirname "$backup_dir")"
+    local backup_folder="$(basename "$backup_dir")"
     
     log "Creating zip archive..."
     
-    cd "$(dirname "$backup_dir")"
-    if zip -rq "$zip_file" "$(basename "$backup_dir")"; then
+    if docker run --rm \
+        -v "$backup_parent":/src:ro \
+        -v "$PROJECT_DIR":/out \
+        alpine sh -c "apk add --no-cache zip > /dev/null 2>&1 && cd /src && zip -rq /out/${backup_name}.zip $backup_folder"; then
         ZIP_SIZE=$(du -h "$zip_file" | cut -f1)
         log_success "Zip archive created: ${backup_name}.zip (size: $ZIP_SIZE)"
         echo "$zip_file"
