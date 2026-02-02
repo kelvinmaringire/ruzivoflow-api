@@ -259,7 +259,43 @@ cleanup_local_backups() {
         done
     fi
     
-    log_success "Cleanup completed"
+    log_success "Local cleanup completed"
+}
+
+# Cleanup old Google Drive backups (keep only latest 2)
+cleanup_gdrive_backups() {
+    log "Cleaning up old Google Drive backups (keeping last 2)..."
+    
+    # List all backup files sorted by modification time (newest first)
+    local backup_files=$(rclone lsf "${RCLONE_REMOTE}:${RCLONE_PATH}/" --format "t" --files-only | grep "^ruzivoflow_backup_.*\.zip$" | sort -r)
+    
+    if [ -z "$backup_files" ]; then
+        log_warning "No backup files found in Google Drive"
+        return 0
+    fi
+    
+    # Count total backups
+    local total_count=$(echo "$backup_files" | wc -l)
+    
+    if [ "$total_count" -le 2 ]; then
+        log "Only $total_count backup(s) in Google Drive, no cleanup needed"
+        return 0
+    fi
+    
+    # Get files to delete (skip first 2, delete the rest)
+    local files_to_delete=$(echo "$backup_files" | tail -n +3)
+    
+    if [ -n "$files_to_delete" ]; then
+        echo "$files_to_delete" | while read -r file; do
+            if [ -n "$file" ]; then
+                log "Deleting old backup from Google Drive: $file"
+                rclone deletefile "${RCLONE_REMOTE}:${RCLONE_PATH}/$file" 2>&1 | tee -a "$LOG_FILE" || log_warning "Failed to delete $file"
+            fi
+        done
+        log_success "Google Drive cleanup completed"
+    else
+        log_success "No old backups to delete"
+    fi
 }
 
 # Main backup function
@@ -307,7 +343,10 @@ main() {
     fi
     
     # Upload to Google Drive
-    if ! upload_to_gdrive "$ZIP_FILE"; then
+    if upload_to_gdrive "$ZIP_FILE"; then
+        # Cleanup old Google Drive backups after successful upload
+        cleanup_gdrive_backups
+    else
         log_warning "Backup created locally but upload to Google Drive failed"
         log_warning "Local backup available at: $ZIP_FILE"
     fi
