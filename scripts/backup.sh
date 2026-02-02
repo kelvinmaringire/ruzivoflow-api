@@ -216,7 +216,7 @@ create_zip() {
     if docker run --rm \
         -v "$backup_parent":/src:ro \
         -v "$PROJECT_DIR":/out \
-        alpine sh -c "apk add --no-cache zip > /dev/null 2>&1 && cd /src && zip -rq /out/${backup_name}.zip $backup_folder"; then
+        alpine sh -c "apk add --no-cache zip > /dev/null 2>&1 && cd /src && zip -rq /out/${backup_name}.zip $backup_folder && zip -uq /out/${backup_name}.zip $backup_folder/.env"; then
         ZIP_SIZE=$(du -h "$zip_file" | cut -f1)
         log_success "Zip archive created: ${backup_name}.zip (size: $ZIP_SIZE)"
         echo "$zip_file"
