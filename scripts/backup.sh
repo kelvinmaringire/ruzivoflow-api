@@ -266,8 +266,8 @@ cleanup_local_backups() {
 cleanup_gdrive_backups() {
     log "Cleaning up old Google Drive backups (keeping last 2)..."
     
-    # List all backup files sorted by modification time (newest first)
-    local backup_files=$(rclone lsf "${RCLONE_REMOTE}:${RCLONE_PATH}/" --format "t" --files-only | grep "^ruzivoflow_backup_.*\.zip$" | sort -r)
+    # List all backup files (rclone lsf lists files, filenames include timestamp so sort works)
+    local backup_files=$(rclone lsf "${RCLONE_REMOTE}:${RCLONE_PATH}/" 2>/dev/null | grep "^ruzivoflow_backup_.*\.zip$" | sort -r)
     
     if [ -z "$backup_files" ]; then
         log_warning "No backup files found in Google Drive"
@@ -275,7 +275,7 @@ cleanup_gdrive_backups() {
     fi
     
     # Count total backups
-    local total_count=$(echo "$backup_files" | wc -l)
+    local total_count=$(echo "$backup_files" | grep -c . || echo "0")
     
     if [ "$total_count" -le 2 ]; then
         log "Only $total_count backup(s) in Google Drive, no cleanup needed"
@@ -286,10 +286,14 @@ cleanup_gdrive_backups() {
     local files_to_delete=$(echo "$backup_files" | tail -n +3)
     
     if [ -n "$files_to_delete" ]; then
-        echo "$files_to_delete" | while read -r file; do
+        echo "$files_to_delete" | while IFS= read -r file; do
             if [ -n "$file" ]; then
                 log "Deleting old backup from Google Drive: $file"
-                rclone deletefile "${RCLONE_REMOTE}:${RCLONE_PATH}/$file" 2>&1 | tee -a "$LOG_FILE" || log_warning "Failed to delete $file"
+                if rclone deletefile "${RCLONE_REMOTE}:${RCLONE_PATH}/$file" 2>&1 | tee -a "$LOG_FILE"; then
+                    log "Deleted: $file"
+                else
+                    log_warning "Failed to delete $file"
+                fi
             fi
         done
         log_success "Google Drive cleanup completed"

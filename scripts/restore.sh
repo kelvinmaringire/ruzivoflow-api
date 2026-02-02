@@ -77,15 +77,26 @@ get_backup_filename() {
     
     if [ -z "$arg" ]; then
         usage
+        return 1
     fi
     
     if [ "$arg" = "latest" ]; then
         log "Finding latest backup in Google Drive..."
-        BACKUP_FILE=$(rclone lsf "${RCLONE_REMOTE}:${RCLONE_PATH}/" --format "t" | grep "^ruzivoflow_backup_.*\.zip$" | sort -r | head -n 1)
+        
+        # List files from Google Drive
+        local file_list=$(rclone lsf "${RCLONE_REMOTE}:${RCLONE_PATH}/" 2>&1)
+        if [ $? -ne 0 ]; then
+            log_error "Failed to list files from Google Drive: $file_list"
+            return 1
+        fi
+        
+        BACKUP_FILE=$(echo "$file_list" | grep "^ruzivoflow_backup_.*\.zip$" | sort -r | head -n 1)
         
         if [ -z "$BACKUP_FILE" ]; then
             log_error "No backup files found in Google Drive"
-            exit 1
+            log "Available files:"
+            echo "$file_list" | head -n 10
+            return 1
         fi
         
         log_success "Found latest backup: $BACKUP_FILE"
@@ -305,7 +316,15 @@ main() {
     check_prerequisites
     
     # Get backup filename
+    set +e  # Temporarily disable exit on error to handle function return
     BACKUP_FILE=$(get_backup_filename "$1")
+    local get_file_result=$?
+    set -e  # Re-enable exit on error
+    
+    if [ $get_file_result -ne 0 ] || [ -z "$BACKUP_FILE" ]; then
+        log_error "Failed to get backup filename"
+        exit 1
+    fi
     
     # Download backup
     LOCAL_ZIP=$(download_backup "$BACKUP_FILE")
