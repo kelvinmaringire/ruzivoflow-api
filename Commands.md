@@ -12,6 +12,9 @@ ssh-keygen -t rsa -b 4096 -C "$(whoami)@$(hostname)" -f ~/.ssh/github
 
 cat /c/Users/User/.ssh/github
 
+timedatectl set-timezone Africa/Johannesburg
+
+
 ```
 
 ```bash
