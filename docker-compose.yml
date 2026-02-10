@@ -18,10 +18,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_net"
-      - "traefik.http.routers.ruzivoflow_websecure.tls=true"
-      - "traefik.http.routers.ruzivoflow_websecure.tls.certresolver=cloudflare"
-      - "traefik.http.routers.ruzivoflow_websecure.entrypoints=websecure"
-      - "traefik.http.routers.ruzivoflow_websecure.rule=Host(`ruzivoflow.com`)"
+      - "traefik.http.routers.ruzivoflow.tls=true"
+      - "traefik.http.routers.ruzivoflow.tls.certresolver=cloudflare"
+      - "traefik.http.routers.ruzivoflow.entrypoints=websecure"
+      - "traefik.http.routers.ruzivoflow.rule=Host(`ruzivoflow.com`)"
       - "traefik.http.services.ruzivoflow.loadbalancer.server.port=8000"
     restart: unless-stopped         # Always restart unless container is stopped manually   
     networks:
