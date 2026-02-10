@@ -24,7 +24,8 @@ services:
       - "traefik.http.services.ruzivoflow.loadbalancer.server.port=8000"
     restart: unless-stopped         # Always restart unless container is stopped manually   
     networks:
-      - ruzivoflow_net     
+      - ruzivoflow_net 
+      - traefik_net    
 
   db:
     image: postgis/postgis:17-3.5  # PostgreSQL 17 with PostGIS 3.5
@@ -66,29 +67,8 @@ services:
       - web
     restart: unless-stopped
     networks:
-      - ruzivoflow_net
-
-  traefik:
-    image: traefik:v3.6
-    container_name: ruzivoflow_traefik
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
-    environment:
-      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}  
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro 
-      - ./data/certs/:/var/traefik/certs/:rw
-    restart: unless-stopped      
-    networks:
-      - ruzivoflow_net     
+      - ruzivoflow_net   
+      - traefik_net
 
 # Define named volumes
 volumes:
@@ -98,6 +78,8 @@ volumes:
 
 networks:
   ruzivoflow_net: 
+    external: true
+  traefik_net:
     external: true
   
 
