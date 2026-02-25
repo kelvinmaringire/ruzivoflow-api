@@ -108,6 +108,26 @@ rclone config
 # 7. Verify configuration: rclone listremotes
 ```
 
+### Service Account + Shared Drive (Required for service accounts)
+
+Service accounts cannot write to My Drive (causes "storageQuotaExceeded" error). You must use the **ruzivoflow-backups** shared drive:
+
+```bash
+# 1. Add service account to shared drive (in Google Drive web UI)
+#    - Open Shared drives > ruzivoflow-backups > Share
+#    - Add: your-service-account@project.iam.gserviceaccount.com (Editor)
+
+# 2. Get shared drive ID and configure rclone
+bash scripts/setup-rclone-shared-drive.sh
+
+# 3. Add team_drive to rclone config (run rclone config, or edit ~/.config/rclone/rclone.conf)
+#    Under [gdrive] add: team_drive = <SHARED_DRIVE_ID>
+
+# 4. Create app folder and test
+rclone mkdir gdrive:RuzivoflowBackups
+bash scripts/backup.sh
+```
+
 ### Backup (Media + Database + .env)
 
 ```bash
@@ -119,7 +139,7 @@ bash scripts/backup.sh
 # - Backup PostgreSQL database (using credentials from .env)
 # - Backup .env file
 # - Create a timestamped .zip file
-# - Upload to Google Drive: gdrive:ruzivoflow-backups/
+# - Upload to Google Drive: gdrive:RuzivoflowBackups/ (inside ruzivoflow-backups shared drive)
 # - Keep last 2 backups locally (configurable via KEEP_LOCAL_BACKUPS env var)
 # - Log all operations to backup.log
 ```
@@ -129,8 +149,8 @@ bash scripts/backup.sh
 # Customize rclone remote name (default: gdrive)
 export RCLONE_REMOTE="gdrive"
 
-# Customize Google Drive folder (default: ruzivoflow-backups)
-export RCLONE_PATH="ruzivoflow-backups"
+# Customize Google Drive folder (default: RuzivoflowBackups, inside ruzivoflow-backups shared drive)
+export RCLONE_PATH="RuzivoflowBackups"
 
 # Customize number of local backups to keep (default: 2)
 export KEEP_LOCAL_BACKUPS=3
@@ -172,7 +192,7 @@ crontab -e
 0 2 * * * cd /home/user/srv/ruzivoflow-api && bash scripts/backup.sh >> backup.log 2>&1
 
 # Or with custom environment variables
-0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=ruzivoflow-backups bash scripts/backup.sh >> backup.log 2>&1
+0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=RuzivoflowBackups bash scripts/backup.sh >> backup.log 2>&1
 
 # Verify cron job
 crontab -l
