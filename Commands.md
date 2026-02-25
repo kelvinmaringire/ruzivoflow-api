@@ -119,7 +119,7 @@ bash scripts/backup.sh
 # - Backup PostgreSQL database (using credentials from .env)
 # - Backup .env file
 # - Create a timestamped .zip file
-# - Upload to Google Drive: gdrive:RuzivoflowBackups/
+# - Upload to Google Drive: gdrive:ruzivoflow-backups/
 # - Keep last 2 backups locally (configurable via KEEP_LOCAL_BACKUPS env var)
 # - Log all operations to backup.log
 ```
@@ -129,8 +129,8 @@ bash scripts/backup.sh
 # Customize rclone remote name (default: gdrive)
 export RCLONE_REMOTE="gdrive"
 
-# Customize Google Drive folder (default: RuzivoflowBackups)
-export RCLONE_PATH="RuzivoflowBackups"
+# Customize Google Drive folder (default: ruzivoflow-backups)
+export RCLONE_PATH="ruzivoflow-backups"
 
 # Customize number of local backups to keep (default: 2)
 export KEEP_LOCAL_BACKUPS=3
@@ -172,7 +172,7 @@ crontab -e
 0 2 * * * cd /home/user/srv/ruzivoflow-api && bash scripts/backup.sh >> backup.log 2>&1
 
 # Or with custom environment variables
-0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=RuzivoflowBackups bash scripts/backup.sh >> backup.log 2>&1
+0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=ruzivoflow-backups bash scripts/backup.sh >> backup.log 2>&1
 
 # Verify cron job
 crontab -l

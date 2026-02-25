@@ -9,7 +9,7 @@ set -e  # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 RCLONE_REMOTE="${RCLONE_REMOTE:-gdrive}"
-RCLONE_PATH="${RCLONE_PATH:-RuzivoflowBackups}"
+RCLONE_PATH="${RCLONE_PATH:-ruzivoflow-backups}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -147,7 +147,7 @@ download_backup() {
         fi
     fi
     
-    # Fallback: try root path (when root_folder_id points to RuzivoflowBackups)
+    # Fallback: try root path (when root_folder_id points to ruzivoflow-backups)
     if [ -n "$RCLONE_PATH" ]; then
         log "Trying root path..." >&2
         remote_path="${RCLONE_REMOTE}:$backup_file"

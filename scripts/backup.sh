@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_FILE="$PROJECT_DIR/backup.log"
 RCLONE_REMOTE="${RCLONE_REMOTE:-gdrive}"
-RCLONE_PATH="${RCLONE_PATH:-RuzivoflowBackups}"
+RCLONE_PATH="${RCLONE_PATH:-ruzivoflow-backups}"
 KEEP_LOCAL_BACKUPS="${KEEP_LOCAL_BACKUPS:-2}"
 
 # Colors for output
