@@ -72,11 +72,28 @@ services:
       - ruzivoflow_net   
       - traefik_net
 
+  jupyter:
+    image: jupyter/base-notebook:latest
+    container_name: ruzivoflow_jupyter
+    ports:
+      - "8889:8888"
+    networks:
+      - ruzivoflow_net
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_PASSWORD: talibk700
+    volumes:
+      - ruzivoflow_notebooks:/home/jovyan/work  
+    command: >
+      start-notebook.sh
+      --NotebookApp.token=''      
+
 # Define named volumes
 volumes:
   ruzivoflow_db:    # Stores PostgreSQL data persistently
   ruzivoflow_static:  # Stores static files persistently
   ruzivoflow_media:   # Stores uploaded media persistently
+  ruzivoflow_notebooks: # Stores Jupyter notebooks persistently
 
 networks:
   ruzivoflow_net: 

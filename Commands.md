@@ -82,6 +82,8 @@ cd ruzivoflow-api
 
 nano .env   # (paste your environment variables here)
 
+docker pull 7612/ruzivoflow-backend:0.1.0
+
 docker compose up -d
 ```
 

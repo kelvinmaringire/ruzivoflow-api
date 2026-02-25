@@ -4,6 +4,7 @@
 # Backs up media files, PostgreSQL database, and .env file to Google Drive
 
 set -e  # Exit on error
+set -o pipefail  # Pipelines fail if any command fails (not just the last)
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
