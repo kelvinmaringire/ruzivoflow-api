@@ -1,4 +1,6 @@
 from django.db import models, transaction
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.contrib.auth.models import User
 
 from wagtail.images.models import Image
@@ -155,3 +157,44 @@ class Connection(models.Model):
         FieldPanel("sourceId"),
         FieldPanel("targetId"),
     ]
+
+
+@receiver(post_save, sender=Connection)
+def connection_post_save_set_parent(sender, instance, created, **kwargs):
+    """On new connection, set target NodeItem's parent to source NodeItem."""
+    if not created:
+        return
+    source = NodeItem.objects.filter(
+        workflow=instance.workflow, html_id=instance.sourceId
+    ).first()
+    target = NodeItem.objects.filter(
+        workflow=instance.workflow, html_id=instance.targetId
+    ).first()
+    if target and source:
+        target.parent = source
+        target.save(update_fields=["parent"])
+
+        # If target is a Select columns node, init from parent's parquet
+        if target.original_id == "select_columns":
+            from node_editor.utils.select_columns import init_select_columns_from_parent
+            target.response_data = init_select_columns_from_parent(target)
+            target.save(update_fields=["response_data"])
+        # If target is a Save file node, init from parent's parquet
+        elif target.original_id == "save_file":
+            from node_editor.utils.save_file import init_save_file_from_parent
+            target.response_data = init_save_file_from_parent(target)
+            target.save(update_fields=["response_data"])
+
+
+@receiver(post_delete, sender=Connection)
+def connection_post_delete_clear_parent(sender, instance, **kwargs):
+    """On connection delete, reset target NodeItem: clear parent, parquet, form_data, response_data."""
+    target = NodeItem.objects.filter(
+        workflow=instance.workflow, html_id=instance.targetId
+    ).first()
+    if target:
+        Document.objects.filter(title=target.html_id).delete()
+        target.parent = None
+        target.formData = None
+        target.response_data = None
+        target.save(update_fields=["parent", "formData", "response_data"])

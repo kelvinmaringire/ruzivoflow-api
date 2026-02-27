@@ -110,21 +110,18 @@ rclone config
 
 ### Service Account + Shared Drive (Required for service accounts)
 
-Service accounts cannot write to My Drive (causes "storageQuotaExceeded" error). You must use the **ruzivoflow-backups** shared drive:
+Service accounts cannot write to My Drive (causes "storageQuotaExceeded" error). You must use a shared drive:
 
 ```bash
 # 1. Add service account to shared drive (in Google Drive web UI)
-#    - Open Shared drives > ruzivoflow-backups > Share
+#    - Open Shared drives > your-backups-drive > Share
 #    - Add: your-service-account@project.iam.gserviceaccount.com (Editor)
 
-# 2. Get shared drive ID and configure rclone
-bash scripts/setup-rclone-shared-drive.sh
-
-# 3. Add team_drive to rclone config (run rclone config, or edit ~/.config/rclone/rclone.conf)
+# 2. Add team_drive to rclone config (run rclone config, or edit ~/.config/rclone/rclone.conf)
 #    Under [gdrive] add: team_drive = <SHARED_DRIVE_ID>
 
-# 4. Create app folder and test
-rclone mkdir gdrive:RuzivoflowBackups
+# 3. Create Backups folder and test
+rclone mkdir gdrive:Backups
 bash scripts/backup.sh
 ```
 
@@ -138,10 +135,17 @@ bash scripts/backup.sh
 # - Backup media files from container/volume
 # - Backup PostgreSQL database (using credentials from .env)
 # - Backup .env file
-# - Create a timestamped .zip file
-# - Upload to Google Drive: gdrive:RuzivoflowBackups/ (inside ruzivoflow-backups shared drive)
-# - Keep last 2 backups locally (configurable via KEEP_LOCAL_BACKUPS env var)
-# - Log all operations to backup.log
+# - Create a timestamped .zip file (e.g. ruzivoflow_20240227_143022.zip)
+# - Upload to Google Drive: gdrive:Backups/ruzivoflow/
+# - Keep max 2 backups in the cloud (delete oldest when a 3rd is created)
+```
+
+**Folder structure on Google Drive:**
+```
+Backups/                    # Root for all apps
+  ruzivoflow/               # This app's backups
+    ruzivoflow_20240227_143022.zip
+    ruzivoflow_20240227_020000.zip
 ```
 
 **Configuration Options:**
@@ -149,11 +153,14 @@ bash scripts/backup.sh
 # Customize rclone remote name (default: gdrive)
 export RCLONE_REMOTE="gdrive"
 
-# Customize Google Drive folder (default: RuzivoflowBackups, inside ruzivoflow-backups shared drive)
-export RCLONE_PATH="RuzivoflowBackups"
+# Customize root folder for all app backups (default: Backups)
+export RCLONE_BASE="Backups"
 
-# Customize number of local backups to keep (default: 2)
-export KEEP_LOCAL_BACKUPS=3
+# Customize app subfolder name (default: ruzivoflow)
+export APP_NAME="ruzivoflow"
+
+# Customize max backups to keep per app (default: 2)
+export MAX_BACKUPS=3
 
 # Then run backup
 bash scripts/backup.sh
@@ -166,21 +173,20 @@ bash scripts/backup.sh
 bash scripts/restore.sh latest
 
 # Restore specific backup
-bash scripts/restore.sh ruzivoflow_backup_20240202_020000.zip
+bash scripts/restore.sh ruzivoflow_20240227_143022.zip
 
 # The script will:
 # - Download backup from Google Drive
 # - Extract backup archive
-# - Restore media files to container
-# - Drop and recreate database, then restore from dump
-# - Restore .env file (with confirmation prompt)
-# - Clean up temporary files
+# - Restore media files to container/volume
+# - Drop and recreate database, then restore from dump (with confirmation)
+# - Restore .env file (with confirmation, current backed up to .env.bak.<timestamp>)
 ```
 
 **Restore Process:**
-- Media files: Automatically copied to `ruzivoflow_web` container
+- Media files: Automatically copied to `ruzivoflow_web` container or volume
 - Database: Requires confirmation before dropping/recreating (destructive operation)
-- .env file: Requires confirmation before overwriting (previous .env backed up to `.env.backup`)
+- .env file: Requires confirmation before overwriting (previous .env backed up to `.env.bak.<timestamp>`)
 
 ### Scheduled Backups (Cron)
 
@@ -192,7 +198,7 @@ crontab -e
 0 2 * * * cd /home/user/srv/ruzivoflow-api && bash scripts/backup.sh >> backup.log 2>&1
 
 # Or with custom environment variables
-0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_PATH=RuzivoflowBackups bash scripts/backup.sh >> backup.log 2>&1
+0 2 * * * cd /home/user/srv/ruzivoflow-api && RCLONE_REMOTE=gdrive RCLONE_BASE=Backups bash scripts/backup.sh >> backup.log 2>&1
 
 # Verify cron job
 crontab -l
@@ -224,6 +230,8 @@ docker compose exec -T db pg_dump -U postgres -d ruzivoflow_db -F c > ./data_bac
 docker compose exec -T db psql -U postgres -c "DROP DATABASE ruzivoflow_db;"
 docker compose exec -T db psql -U postgres -c "CREATE DATABASE ruzivoflow_db;"
 docker compose exec -T db pg_restore -U postgres -d ruzivoflow_db < data_backup.dump
+
+chmod +x scripts/backup.sh scripts/restore.sh
 ```
 
 </details>
