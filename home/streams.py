@@ -20,9 +20,7 @@ class TechnologyBlock(blocks.StructBlock):
 
 class PortfolioItemBlock(blocks.StructBlock):
     name = blocks.CharBlock(required=True, max_length=100)
-    client = blocks.CharBlock(required=True, max_length=100)
-    client_logo = ImageChooserBlock(required=True)
-    image = ImageChooserBlock(required=True)
+    logo = ImageChooserBlock(required=True)
     platform = blocks.CharBlock(required=True, max_length=100)
     description = blocks.RichTextBlock(required=True, features=['bold', 'italic', 'link'])
     technologies = blocks.ListBlock(

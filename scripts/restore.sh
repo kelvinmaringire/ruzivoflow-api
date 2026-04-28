@@ -22,12 +22,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Load .env for database credentials (use existing or will be restored)
+# Load .env for database credentials (strip CR for Windows-edited files)
+# Parse line-by-line to avoid shell syntax errors from special chars (e.g. parens in values)
 if [ -f .env ]; then
-  set -a
-  # shellcheck source=/dev/null
-  source .env
-  set +a
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^#.*$ ]] && continue
+    [[ -z "$line" ]] && continue
+    if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
+    fi
+  done < .env
 fi
 
 if [ -z "${POSTGRES_USER:-}" ] || [ -z "${POSTGRES_DB:-}" ]; then
@@ -61,6 +66,7 @@ rclone copy "$REMOTE_PATH/$BACKUP_FILE" "$TEMP_DIR/"
 # Extract
 echo "Extracting..."
 unzip -q -o "$TEMP_DIR/$BACKUP_FILE" -d "$TEMP_DIR/extracted"
+rm -f "$TEMP_DIR/$BACKUP_FILE"
 
 RESTORE_DIR="$TEMP_DIR/extracted"
 
@@ -80,18 +86,13 @@ fi
 
 # Database restore
 echo ""
-read -r -p "Restore database? This will DROP and recreate it. Continue? [y/N] " REPLY
-if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-  echo "  Dropping database..."
-  docker compose exec -T db psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS $POSTGRES_DB;" 2>/dev/null || true
-  echo "  Creating database..."
-  docker compose exec -T db psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE $POSTGRES_DB;"
-  echo "  Restoring from dump..."
-  docker compose exec -T db pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-acl < "$RESTORE_DIR/db.dump" 2>/dev/null || true
-  echo "  Database restored."
-else
-  echo "  Skipped database restore."
-fi
+echo "  Dropping database..."
+docker compose exec -T db psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS $POSTGRES_DB;" 2>/dev/null || true
+echo "  Creating database..."
+docker compose exec -T db psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE $POSTGRES_DB;"
+echo "  Restoring from dump..."
+docker compose exec -T db pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-acl < "$RESTORE_DIR/db.dump" 2>/dev/null || true
+echo "  Database restored."
 
 # Media restore
 echo ""
@@ -106,18 +107,8 @@ echo "  Media restored."
 
 # .env restore
 echo ""
-read -r -p "Overwrite .env? Current will be backed up to .env.bak. Continue? [y/N] " REPLY
-if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-  BAK_FILE=".env.bak.$(date +%Y%m%d_%H%M%S)"
-  if [ -f .env ]; then
-    cp .env "$BAK_FILE"
-    echo "  Backed up current .env to $BAK_FILE"
-  fi
-  cp "$RESTORE_DIR/.env" .env
-  echo "  .env restored."
-else
-  echo "  Skipped .env restore."
-fi
+cp "$RESTORE_DIR/.env" .env
+echo "  .env restored."
 
 echo ""
 echo "Restore complete."

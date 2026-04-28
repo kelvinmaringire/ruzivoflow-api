@@ -27,12 +27,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Load .env for database credentials
+# Load .env for database credentials (strip CR for Windows-edited files)
+# Parse line-by-line to avoid shell syntax errors from special chars (e.g. parens in values)
 if [ -f .env ]; then
-  set -a
-  # shellcheck source=/dev/null
-  source .env
-  set +a
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^#.*$ ]] && continue
+    [[ -z "$line" ]] && continue
+    if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
+    fi
+  done < .env
 fi
 
 if [ -z "${POSTGRES_USER:-}" ] || [ -z "${POSTGRES_DB:-}" ]; then
