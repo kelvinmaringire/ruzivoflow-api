@@ -104,7 +104,7 @@ class HomePageTestCase(TestCase):
                     'image': self.hero_image.id,
                     'platform': 'iOS',
                     'description': '<p>Description</p>',
-                    'technologies': [{'name': 'Django'}],
+                    'features': [{'name': 'Django'}],
                     'website_url': 'https://example.com',
                     'year': 2025
                 }

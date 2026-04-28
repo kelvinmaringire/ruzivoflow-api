@@ -29,10 +29,14 @@ class PortfolioItemBlockField(Field):
                 'client': item.value.get('client') or item.value.get('name'),
                 'platform': item.value.get('platform'),
                 'description': str(item.value.get('description') or ''),
-                'technologies': [tech.get('name') for tech in (item.value.get('technologies') or []) if tech.get('name')],
+                'features': [
+                    tech.get('name')
+                    for tech in (item.value.get('features') or item.value.get('technologies') or [])
+                    if tech.get('name')
+                ],
                 'website_url': item.value.get('website_url'),
                 'play_store_url': item.value.get('play_store_url'),
-                'app_store_url': item.value.get('app_store_url'),
+                'download_path': item.value.get('download_path'),
                 'year': item.value.get('year'),
             }
 

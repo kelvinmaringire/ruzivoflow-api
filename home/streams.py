@@ -23,7 +23,7 @@ class PortfolioItemBlock(blocks.StructBlock):
     logo = ImageChooserBlock(required=True)
     platform = blocks.CharBlock(required=True, max_length=100)
     description = blocks.RichTextBlock(required=True, features=['bold', 'italic', 'link'])
-    technologies = blocks.ListBlock(
+    features = blocks.ListBlock(
         blocks.StructBlock([
             ('name', blocks.CharBlock(required=True))
         ]),
@@ -31,7 +31,7 @@ class PortfolioItemBlock(blocks.StructBlock):
     )
     website_url = blocks.URLBlock(required=False)
     play_store_url = blocks.URLBlock(required=False, label="Google Play Store URL")
-    app_store_url = blocks.URLBlock(required=False, label="Apple App Store URL")
+    download_path = blocks.CharBlock(required=False, label="Download path")
     year = blocks.IntegerBlock(required=True, min_value=2000, max_value=2100)
 
 
