@@ -40,6 +40,13 @@ class PortfolioItemBlockField(Field):
                 'year': item.value.get('year'),
             }
 
+            doc = item.value.get('file')
+            if doc:
+                item_data['file'] = {
+                    "url": request.build_absolute_uri(doc.url) if request else doc.url,
+                    "title": getattr(doc, "title", None),
+                }
+
             logo = item.value.get('logo') or item.value.get('client_logo')
             if logo:
                 filename, extension = splitext(logo.file.name)

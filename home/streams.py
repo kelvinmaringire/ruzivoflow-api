@@ -1,5 +1,6 @@
 from wagtail import blocks
 from wagtail.images.blocks import ImageChooserBlock
+from wagtail.documents.blocks import DocumentChooserBlock
 
 
 class ServicesBlock(blocks.StructBlock):
@@ -31,7 +32,7 @@ class PortfolioItemBlock(blocks.StructBlock):
     )
     website_url = blocks.URLBlock(required=False)
     play_store_url = blocks.URLBlock(required=False, label="Google Play Store URL")
-    download_path = blocks.CharBlock(required=False, label="Download path")
+    file = DocumentChooserBlock(required=False)
     year = blocks.IntegerBlock(required=True, min_value=2000, max_value=2100)
 
 
