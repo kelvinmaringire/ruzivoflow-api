@@ -20,31 +20,36 @@ class PortfolioItemBlockField(Field):
         data = []
 
         for item in value:
+            # StreamField block schema changed in migration 0005:
+            # - removed `client`
+            # - renamed `client_logo` -> `logo`
+            # Use safe access + fallbacks to support existing content.
             item_data = {
-                'name': item.value['name'],
-                'client': item.value['client'],
-                'platform': item.value['platform'],
-                'description': str(item.value['description']),
-                'technologies': [tech['name'] for tech in item.value['technologies']],
+                'name': item.value.get('name'),
+                'client': item.value.get('client') or item.value.get('name'),
+                'platform': item.value.get('platform'),
+                'description': str(item.value.get('description') or ''),
+                'technologies': [tech.get('name') for tech in (item.value.get('technologies') or []) if tech.get('name')],
                 'website_url': item.value.get('website_url'),
                 'play_store_url': item.value.get('play_store_url'),
                 'app_store_url': item.value.get('app_store_url'),
-                'year': item.value['year'],
+                'year': item.value.get('year'),
             }
 
-            # Handle client_logo
-            if item.value['client_logo']:
-                filename, extension = splitext(item.value['client_logo'].file.name)
+            logo = item.value.get('logo') or item.value.get('client_logo')
+            if logo:
+                filename, extension = splitext(logo.file.name)
                 item_data['client_logo'] = {
-                    "image": request.build_absolute_uri(item.value['client_logo'].file.url),
+                    "image": request.build_absolute_uri(logo.file.url) if request else logo.file.url,
                     "name": basename(filename)
                 }
 
             # Handle image
-            if item.value['image']:
-                filename, extension = splitext(item.value['image'].file.name)
+            image = item.value.get('image')
+            if image:
+                filename, extension = splitext(image.file.name)
                 item_data['image'] = {
-                    "image": request.build_absolute_uri(item.value['image'].file.url),
+                    "image": request.build_absolute_uri(image.file.url) if request else image.file.url,
                     "name": basename(filename)
                 }
 
