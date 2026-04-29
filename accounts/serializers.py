@@ -1,8 +1,23 @@
-from django.contrib.auth.models import User, Group, Permission
+from django.contrib.auth.models import User
 
 from rest_framework import serializers
 
 from .models import ExtendedUser
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True, min_length=8)
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True, write_only=True, min_length=8)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -27,18 +42,6 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-
-
-class GroupSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = '__all__'
-
-
-class PermissionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Permission
-        fields = '__all__'
 
 
 class ExtendedUserSerializer(serializers.ModelSerializer):
