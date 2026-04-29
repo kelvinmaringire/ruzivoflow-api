@@ -8,6 +8,30 @@ from wagtail.fields import RichTextField
 from wagtail.admin.panels import FieldPanel
 
 
+FULL_RICH_TEXT_FEATURES = [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "bold",
+    "italic",
+    "strikethrough",
+    "superscript",
+    "subscript",
+    "ol",
+    "ul",
+    "hr",
+    "blockquote",
+    "code",
+    "link",
+    "document-link",
+    "image",
+    "embed",
+]
+
+
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
@@ -85,8 +109,8 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
         related_name="blog_posts",
     )
-    excerpt = RichTextField(max_length=500, blank=True, null=True)
-    content = RichTextField()
+    excerpt = RichTextField(max_length=500, blank=True, null=True, features=FULL_RICH_TEXT_FEATURES)
+    content = RichTextField(features=FULL_RICH_TEXT_FEATURES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
     views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
