@@ -78,7 +78,8 @@ class HomePage(Page):
         ('social_media', SocialMediaBlock()),
     ], use_json_field=True, blank=False, null=True, collapsed=True,)
 
-
+    privacy_policy = RichTextField(blank=True, null=True)
+    terms_of_service = RichTextField(blank=True, null=True)
 
     content_panels = Page.content_panels + [
         MultiFieldPanel([
@@ -128,6 +129,10 @@ class HomePage(Page):
             FieldPanel("contact_phone_number"),
             FieldPanel("social_media_items"),
         ], heading="Contact", classname="collapsed", icon="mail"),
+        MultiFieldPanel([
+            FieldPanel("privacy_policy"),
+            FieldPanel("terms_of_service"),
+        ], heading="Legal", classname="collapsed", icon="doc-full"),
     ]
 
     api_fields = [
@@ -166,7 +171,8 @@ class HomePage(Page):
         APIField("contact_email"),
         APIField("contact_phone_number"),
         APIField("social_media_items", serializer=SocialMediaItemBlockField()),
-
+        APIField("privacy_policy"),
+        APIField("terms_of_service"),
     ]
 
 
