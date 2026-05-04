@@ -10,6 +10,30 @@ from .streams import ServicesBlock, FeaturesBlock, PortfolioItemBlock, SocialMed
 from .serializers import ImageSerializedField, PortfolioItemBlockField, SocialMediaItemBlockField
 
 
+FULL_RICH_TEXT_FEATURES = [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "bold",
+    "italic",
+    "strikethrough",
+    "superscript",
+    "subscript",
+    "ol",
+    "ul",
+    "hr",
+    "blockquote",
+    "code",
+    "link",
+    "document-link",
+    "image",
+    "embed",
+]
+
+
 class HomePage(Page):
     heroTitle = models.CharField(max_length=100, blank=False, null=True)
     heroSubtitle = RichTextField(null=True, blank=False)
@@ -78,8 +102,8 @@ class HomePage(Page):
         ('social_media', SocialMediaBlock()),
     ], use_json_field=True, blank=False, null=True, collapsed=True,)
 
-    privacy_policy = RichTextField(blank=True, null=True)
-    terms_of_service = RichTextField(blank=True, null=True)
+    privacy_policy = RichTextField(blank=True, null=True, features=FULL_RICH_TEXT_FEATURES)
+    terms_of_service = RichTextField(blank=True, null=True, features=FULL_RICH_TEXT_FEATURES)
 
     content_panels = Page.content_panels + [
         MultiFieldPanel([
