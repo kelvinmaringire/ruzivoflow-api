@@ -1,1 +1,0 @@
-import{Q as r}from"./QPageContainer.312047e7.js";import{f as a,o as n,g as c,w as e,j as o,Y as s}from"./index.fa350ed1.js";import{_ as f}from"./plugin-vue_export-helper.21dcd24c.js";const _={};function i(u,l){const t=a("router-view");return n(),c(s,{view:"hhh lpR fff"},{default:e(()=>[o(r,null,{default:e(()=>[o(t)]),_:1})]),_:1})}var h=f(_,[["render",i]]);export{h as default};
